@@ -88,3 +88,7 @@ export const isASmsInbox = (inbox: Inbox | undefined) => {
 export const whatsAppAPIProvider = (inbox: Inbox) => {
   return inbox.provider || '';
 };
+
+export const isAInstagramChannel = (inbox: Inbox) => {
+  return inbox.channelType === INBOX_TYPES.INSTAGRAM;
+};

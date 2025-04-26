@@ -22,6 +22,7 @@ import {
   isATelegramChannel,
   isAWebWidgetInbox,
   isAPIInbox,
+  isAInstagramChannel,
 } from '@/utils';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { MESSAGE_MAX_LENGTH, REPLY_EDITOR_MODES } from '@/constants';
@@ -330,7 +331,8 @@ const BottomSheetContent = () => {
       isASmsInbox(inbox) ||
       isAnEmailChannel(inbox) ||
       isATelegramChannel(inbox) ||
-      isALineChannel(inbox));
+      isALineChannel(inbox) ||
+      isAInstagramChannel(inbox));
 
   const maxLength = () => {
     if (isPrivate) {

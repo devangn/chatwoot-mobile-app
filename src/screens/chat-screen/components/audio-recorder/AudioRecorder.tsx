@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, PermissionsAndroid, Platform, Pressable } from 'react-native';
-import AudioRecorderPlayer, { RecordBackType } from 'react-native-audio-recorder-player';
+import AudioRecorderPlayer, {
+  RecordBackType,
+  AVEncodingOption,
+} from 'react-native-audio-recorder-player';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { isUndefined } from 'lodash';
 import * as Sentry from '@sentry/react-native';
@@ -97,7 +100,11 @@ export const AudioRecorder = ({
         android: `${dirs.CacheDir}/audio-${localRecordedAudioCacheFilePaths.length}.mp3`,
       });
 
-      ARPlayer.startRecorder(path)
+      ARPlayer.startRecorder(path, {
+        AVFormatIDKeyIOS: AVEncodingOption.aac,
+        AVNumberOfChannelsKeyIOS: 2,
+        AVSampleRateKeyIOS: 44100,
+      })
         .then((value: string) => {
           if (value) {
             setIsAudioRecording(true);
