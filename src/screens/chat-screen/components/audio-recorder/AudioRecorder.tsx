@@ -160,8 +160,6 @@ export const AudioRecorder = ({
             fileSize: stats.size,
           };
 
-          console.log('audioFile', audioFile);
-
           dispatch(addNewCachePath(finalPath));
           setIsVoiceRecorderOpen(false);
           onRecordingComplete(audioFile as unknown as File);
