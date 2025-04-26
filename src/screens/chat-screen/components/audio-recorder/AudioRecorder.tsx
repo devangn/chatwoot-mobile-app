@@ -17,7 +17,6 @@ import {
   addNewCachePath,
   selectLocalRecordedAudioCacheFilePaths,
 } from '@/store/conversation/localRecordedAudioCacheSlice';
-import { convertAacToMp3 } from '@/utils/audioConverter';
 
 const RecorderSegmentWidth = Dimensions.get('screen').width - 8 - 80 - 12;
 
@@ -135,22 +134,26 @@ export const AudioRecorder = ({
             }) || value;
 
           // Convert to MP3 for iOS
-          let finalPath = cleanPath;
-          if (Platform.OS === 'ios') {
-            finalPath = await convertAacToMp3(cleanPath);
-            finalPath = finalPath.replace('file://', '');
-          }
+          const finalPath = cleanPath;
 
           const stats = await RNFetchBlob.fs.stat(finalPath);
 
           const audioFile = {
             uri: Platform.OS === 'ios' ? `file://${finalPath}` : finalPath,
             originalPath: finalPath,
-            type: 'audio/mp3',
-            fileName: `audio-${localRecordedAudioCacheFilePaths.length}.mp3`,
-            name: `audio-${localRecordedAudioCacheFilePaths.length}.mp3`,
+            type: Platform.OS === 'ios' ? 'audio/m4a' : 'audio/mp3',
+            fileName:
+              Platform.OS === 'ios'
+                ? `audio-${localRecordedAudioCacheFilePaths.length}.m4a`
+                : `audio-${localRecordedAudioCacheFilePaths.length}.mp3`,
+            name:
+              Platform.OS === 'ios'
+                ? `audio-${localRecordedAudioCacheFilePaths.length}.m4a`
+                : `audio-${localRecordedAudioCacheFilePaths.length}.mp3`,
             fileSize: stats.size,
           };
+
+          console.log('audioFile', audioFile);
 
           dispatch(addNewCachePath(finalPath));
           setIsVoiceRecorderOpen(false);
