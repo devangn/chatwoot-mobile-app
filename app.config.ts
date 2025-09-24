@@ -3,7 +3,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     name: 'Let Them Connect',
-    slug: process.env.EXPO_PUBLIC_APP_SLUG || 'chatwoot-mobile',
+    slug: process.env.EXPO_PUBLIC_APP_SLUG || 'let-them-connect',
     version: '4.2.3',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -63,6 +63,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
     },
     owner: 'letthemconnect',
+    //owner: 'devangn',
     plugins: [
       'expo-font',
       ['react-native-permissions', { iosPermissions: ['Camera', 'PhotoLibrary', 'MediaLibrary'] }],
