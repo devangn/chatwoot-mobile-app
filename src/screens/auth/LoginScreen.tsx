@@ -76,9 +76,7 @@ const LoginScreen = () => {
 
   useEffect(() => {
     dispatch(resetAuth());
-    if (!installationUrl) {
-      navigation.navigate('ConfigureURL' as never);
-    }
+    // Removed ConfigureURL navigation - URL is now static
   }, [installationUrl, navigation, dispatch]);
 
   const onSubmit = async (data: FormData) => {
@@ -105,9 +103,7 @@ const LoginScreen = () => {
     navigation.navigate('ResetPassword' as never);
   };
 
-  const openConfigInstallationURL = () => {
-    navigation.navigate('ConfigureURL' as never);
-  };
+  // Removed openConfigInstallationURL - URL is now static
 
   const onChangeLanguage = (locale: string) => {
     dispatch(setLocale(locale));
@@ -237,13 +233,7 @@ const LoginScreen = () => {
             handlePress={handleSubmit(onSubmit)}
           />
 
-          <Pressable
-            style={tailwind.style('flex-row justify-center items-center mt-6')}
-            onPress={openConfigInstallationURL}>
-            <Animated.Text style={tailwind.style('text-sm text-gray-900')}>
-              {i18n.t('LOGIN.CHANGE_URL')}
-            </Animated.Text>
-          </Pressable>
+          {/* Removed Change URL button - URL is now static */}
           <Pressable
             style={tailwind.style('flex-row justify-center items-center mt-4')}
             onPress={() => languagesModalSheetRef.current?.present()}>

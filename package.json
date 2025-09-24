@@ -1,5 +1,5 @@
 {
-  "name": "@chatwoot/mobile-app",
+  "name": "@letthemconnect/mobile-app",
   "version": "4.2.3",
   "scripts": {
     "start": "expo start --dev-client",

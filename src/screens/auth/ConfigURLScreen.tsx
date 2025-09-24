@@ -30,7 +30,7 @@ const ConfigURLScreen = () => {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      url: baseUrl ? baseUrl : appName === 'Chatwoot' ? 'app.chatwoot.com' : '',
+      url: baseUrl ? baseUrl : process.env.EXPO_PUBLIC_DEFAULT_SERVER_URL || 'cw3.letthemconnect.com',
     },
   });
 

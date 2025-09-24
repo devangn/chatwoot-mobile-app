@@ -139,12 +139,13 @@ const Tabs = () => {
   );
 
   const checkAppVersion = useCallback(async () => {
-    if (chatwootVersion) {
-      checkServerSupport({
-        installedVersion: chatwootVersion,
-        userRole: currentAccountRole,
-      });
-    }
+    // Disabled server upgrade check - not needed for whitelabeled app
+    // if (chatwootVersion) {
+    //   checkServerSupport({
+    //     installedVersion: chatwootVersion,
+    //     userRole: currentAccountRole,
+    //   });
+    // }
   }, [chatwootVersion, currentAccountRole]);
 
   useEffect(() => {

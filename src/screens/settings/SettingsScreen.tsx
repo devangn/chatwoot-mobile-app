@@ -22,7 +22,6 @@ import { resetNotifications } from '@/store/notification/notificationSlice';
 import { clearAllContacts } from '@/store/contact/contactSlice';
 
 import i18n from 'i18n';
-import { HELP_URL } from '@/constants/url';
 import { tailwind } from '@/theme';
 
 import {
@@ -122,7 +121,7 @@ const SettingsScreen = () => {
 
   const isChatwootCloud = useAppSelector(selectIsChatwootCloud);
 
-  const chatwootInstance = isChatwootCloud ? `${appName} cloud` : `${appName} self-hosted`;
+  const appInstance = appName; // Removed cloud/self-hosted distinction
 
   const accounts = useSelector(selectAccounts) || [];
 
@@ -192,9 +191,7 @@ const SettingsScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLocale]);
 
-  const openURL = async () => {
-    await WebBrowser.openBrowserAsync(HELP_URL);
-  };
+  // Removed openURL function - using environment variables for help links
 
   // const openSystemSettings = () => {
   //   if (Platform.OS === 'ios') {
@@ -254,19 +251,29 @@ const SettingsScreen = () => {
   const supportList: GenericListType[] = [
     {
       hasChevron: true,
-      title: i18n.t('SETTINGS.READ_DOCS'),
+      title: 'Watch Tutorials',
       icon: <SwitchIcon />,
       subtitle: '',
       subtitleType: 'light',
-      onPressListItem: openURL,
+      onPressListItem: () => {
+        const youtubeUrl = process.env.EXPO_PUBLIC_YOUTUBE_CHANNEL_URL;
+        if (youtubeUrl) {
+          WebBrowser.openBrowserAsync(youtubeUrl);
+        }
+      },
     },
     {
       hasChevron: true,
-      title: i18n.t('SETTINGS.CHAT_WITH_US'),
+      title: 'Get Support',
       icon: <ChatwootIcon />,
       subtitle: '',
       subtitleType: 'light',
-      onPressListItem: () => toggleWidget(true),
+      onPressListItem: () => {
+        const supportUrl = process.env.EXPO_PUBLIC_SUPPORT_URL;
+        if (supportUrl) {
+          WebBrowser.openBrowserAsync(supportUrl);
+        }
+      },
     },
   ];
 
@@ -319,7 +326,7 @@ const SettingsScreen = () => {
           style={tailwind.style('p-4 items-center')}
           onLongPress={() => debugActionsSheetRef.current?.present()}>
           <Text style={tailwind.style('text-sm text-gray-700 ')}>
-            {`${chatwootInstance} ${appVersionDetails}`}
+            {`${appInstance} ${appVersionDetails}`}
           </Text>
         </Pressable>
       </Animated.ScrollView>
