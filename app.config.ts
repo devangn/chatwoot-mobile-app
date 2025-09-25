@@ -31,6 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       // Please use the relative path to the google-services.json file
       googleServicesFile: process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE,
+      googleServicesFile: process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE,
       entitlements: { 'aps-environment': 'production' },
       associatedDomains: ['applinks:cw3.letthemconnect.com'],
     },
@@ -39,7 +40,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       package: 'com.letthemconnect.app',
       permissions: ['android.permission.CAMERA', 'android.permission.RECORD_AUDIO'],
       // Please use the relative path to the google-services.json file
-      googleServicesFile: process.env.EXPO_PUBLIC_ANDROID_GOOGLE_SERVICES_FILE,
+      //googleServicesFile: process.env.EXPO_PUBLIC_ANDROID_GOOGLE_SERVICES_FILE,
+      googleServicesFile: "./google-services.json",
       intentFilters: [
         {
           action: 'VIEW',
@@ -58,7 +60,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     extra: {
       eas: {
-        projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+        //projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+        projectId: "b2042274-3d3e-4c97-9459-6899eda91fe5",
         storybookEnabled: process.env.EXPO_STORYBOOK_ENABLED,
       },
     },
