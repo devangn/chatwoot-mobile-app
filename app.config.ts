@@ -8,7 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
-    newArchEnabled: false,
+    newArchEnabled: true,
     splash: {
       image: './assets/splash.png',
       resizeMode: 'contain',
@@ -30,7 +30,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         ITSAppUsesNonExemptEncryption: false,
       },
       // Please use the relative path to the google-services.json file
-      googleServicesFile: process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE,
       googleServicesFile: process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE,
       entitlements: { 'aps-environment': 'production' },
       associatedDomains: ['applinks:cw3.letthemconnect.com'],
@@ -87,13 +86,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           android: {
             minSdkVersion: 24,
             compileSdkVersion: 35,
-            targetSdkVersion: 34,
+            targetSdkVersion: 35,
             enableProguardInReleaseBuilds: true,
           },
           ios: { useFrameworks: 'static' },
         },
       ],
       './with-ffmpeg-pod.js',
+      './with-16kb-page-size.js',
+      './with-document-picker-fix.js',
     ],
     androidNavigationBar: { backgroundColor: '#ffffff' },
   };
