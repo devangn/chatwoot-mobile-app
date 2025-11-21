@@ -210,14 +210,6 @@ const SettingsScreen = () => {
   const preferencesList: GenericListType[] = [
     {
       hasChevron: true,
-      title: i18n.t('SETTINGS.CHANGE_AVAILABILITY'),
-      icon: <SwitchIcon />,
-      subtitle: '',
-      subtitleType: 'light',
-      onPressListItem: () => openSheet(),
-    },
-    {
-      hasChevron: true,
       title: i18n.t('SETTINGS.NOTIFICATIONS'),
       icon: <NotificationIcon />,
       subtitle: '',
@@ -225,26 +217,6 @@ const SettingsScreen = () => {
       disabled: !hasConversationPermission,
       onPressListItem: () => notificationPreferencesSheetRef.current?.present(),
       // onPressListItem: openSystemSettings,
-    },
-    {
-      hasChevron: true,
-      title: i18n.t('SETTINGS.CHANGE_LANGUAGE'),
-      icon: <TranslateIcon />,
-      subtitle: LANGUAGES[activeLocale as keyof typeof LANGUAGES],
-      subtitleType: 'light',
-      onPressListItem: () => languagesModalSheetRef.current?.present(),
-    },
-    {
-      hasChevron: enableAccountSwitch,
-      title: i18n.t('SETTINGS.SWITCH_ACCOUNT'),
-      icon: <SwitchIcon />,
-      subtitle: activeAccountName,
-      subtitleType: 'light',
-      onPressListItem: () => {
-        if (enableAccountSwitch) {
-          switchAccountSheetRef.current?.present();
-        }
-      },
     },
   ];
 
