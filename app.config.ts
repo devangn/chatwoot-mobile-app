@@ -94,7 +94,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ],
       './with-ffmpeg-pod.js',
       './with-16kb-page-size.js',
-      './with-document-picker-fix.js',
     ],
     androidNavigationBar: { backgroundColor: '#ffffff' },
   };

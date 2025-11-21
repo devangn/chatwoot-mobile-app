@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Linking, Platform, Pressable, Text } from 'react-native';
-import DocumentPicker, { DocumentPickerResponse } from 'react-native-document-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { Asset, launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { PERMISSIONS, request, RESULTS } from 'react-native-permissions';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
@@ -94,52 +94,48 @@ const handleLaunchCamera = async dispatch => {
 
 /**
  * Doing this so that the our Store Object Attachments is of single type - Asset from Image Picker Library
- * The function `mapObject` takes an object of type `DocumentPickerResponse` and returns an array of
+ * The function `mapObject` takes an object from expo-document-picker and returns an array of
  * `Asset` objects with properties `fileName`, `fileSize`, `type`, and `uri`.
- * @param {DocumentPickerResponse} originalObject - The originalObject parameter is of type
- * DocumentPickerResponse.
+ * @param {DocumentPicker.DocumentPickerResult} originalObject - The document picker result.
  * @returns The function `mapObject` is returning an array of `Asset` objects.
  */
-const mapObject = (originalObject: DocumentPickerResponse): Asset[] => {
+const mapObject = (originalObject: DocumentPicker.DocumentPickerResult): Asset[] => {
+  if (originalObject.canceled) {
+    return [];
+  }
+  const file = originalObject.assets[0];
   return [
     {
-      fileName: originalObject.name || '',
-      fileSize: originalObject.size || 0,
-      type: originalObject.type || '',
-      uri: originalObject.uri || '',
+      fileName: file.name || '',
+      fileSize: file.size || 0,
+      type: file.mimeType || '',
+      uri: file.uri || '',
     },
   ];
 };
 
 const handleAttachFile = async dispatch => {
   try {
-    const result = await DocumentPicker.pick({
-      type: [
-        DocumentPicker.types.allFiles,
-        DocumentPicker.types.images,
-        DocumentPicker.types.plainText,
-        DocumentPicker.types.audio,
-        DocumentPicker.types.pdf,
-        DocumentPicker.types.zip,
-        DocumentPicker.types.csv,
-        DocumentPicker.types.doc,
-        DocumentPicker.types.docx,
-        DocumentPicker.types.ppt,
-        DocumentPicker.types.pptx,
-        DocumentPicker.types.xls,
-        DocumentPicker.types.xlsx,
-      ], // You can specify the file types you want to allow
-      presentationStyle: 'formSheet',
+    const result = await DocumentPicker.getDocumentAsync({
+      type: '*/*', // expo-document-picker uses MIME types, '*' allows all files
+      copyToCacheDirectory: true,
+      multiple: false,
     });
-    // TODO: Support multiple files
-    const file = mapObject(result[0])[0];
-    validateFileAndSetAttachments(dispatch, file);
-  } catch (err) {
-    if (DocumentPicker.isCancel(err)) {
+    
+    if (result.canceled) {
       // User cancelled the picker
-    } else {
-      throw err;
+      return;
     }
+    
+    // TODO: Support multiple files
+    const file = mapObject(result)[0];
+    if (file) {
+      validateFileAndSetAttachments(dispatch, file);
+    }
+  } catch (err) {
+    // Handle errors (expo-document-picker throws errors for actual errors, not cancellations)
+    console.error('Document picker error:', err);
+    throw err;
   }
 };
 
