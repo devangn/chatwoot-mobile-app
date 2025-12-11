@@ -53,10 +53,8 @@ export default (() => {
     return require('./.storybook').default;
   }
 
-  if (!__DEV__) {
-    return Sentry.wrap(App);
-  }
-
+  // Don't use Sentry.wrap here as it can cause "runtime not ready" errors
+  // ErrorBoundary in src/app.tsx already handles errors and reports to Sentry
   console.log('Loading Development App');
   return App;
 })();
