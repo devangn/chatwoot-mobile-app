@@ -77,7 +77,7 @@ export const settingsActions = {
     ({ installationUrl }) => SettingsService.getChatwootVersion(installationUrl),
   ),
 
-  saveDeviceDetails: createAsyncThunk<{ fcmToken: string }, void>(
+  saveDeviceDetails: createAsyncThunk<{ fcmToken: string }, undefined>(
     'settings/saveDeviceDetails',
     async (_, { rejectWithValue }) => {
       try {
