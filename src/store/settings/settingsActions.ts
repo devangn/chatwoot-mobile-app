@@ -77,11 +77,10 @@ export const settingsActions = {
     ({ installationUrl }) => SettingsService.getChatwootVersion(installationUrl),
   ),
 
-  saveDeviceDetails: createAsyncThunk<{ fcmToken: string }, {}>(
+  saveDeviceDetails: createAsyncThunk<{ fcmToken: string }, void>(
     'settings/saveDeviceDetails',
     async (_, { rejectWithValue }) => {
       try {
-        const permissionEnabled = await messaging().hasPermission();
         // Safely check messaging permissions
         let permissionEnabled = -1;
         try {
@@ -104,10 +103,10 @@ export const settingsActions = {
 
         if (!permissionEnabled || permissionEnabled === -1) {
           try {
-            if (isAndroidAPILevelGreater32) {
-              await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-            }
-            await messaging().requestPermission();
+          if (isAndroidAPILevelGreater32) {
+            await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+          }
+          await messaging().requestPermission();
           } catch (error) {
             console.error('[Settings] Failed to request messaging permission:', error);
             // Continue without permission - user can grant it later
