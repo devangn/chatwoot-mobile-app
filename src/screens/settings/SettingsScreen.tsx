@@ -11,7 +11,7 @@ import {
   BottomSheetScrollView,
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
-import DeviceInfo from 'react-native-device-info';
+import { DeviceInfoSafe } from '@/utils/deviceInfoUtils';
 import * as WebBrowser from 'expo-web-browser';
 import ChatWootWidget from '@chatwoot/react-native-widget';
 import { useSelector } from 'react-redux';
@@ -114,7 +114,7 @@ const SettingsScreen = () => {
     originatedFrom: 'mobile-app',
     appName,
     appVersion: appVersionDetails,
-    deviceId: DeviceInfo.getDeviceId(),
+    deviceId: DeviceInfoSafe.getDeviceId(),
     packageName: appName,
     operatingSystem: Platform.OS, // android/ios
   };

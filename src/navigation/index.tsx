@@ -25,9 +25,15 @@ import Inter50024 from '@/assets/fonts/Inter-500-24.ttf';
 import Inter58024 from '@/assets/fonts/Inter-580-24.ttf';
 import Inter60020 from '@/assets/fonts/Inter-600-20.ttf';
 
-messaging().setBackgroundMessageHandler(async remoteMessage => {
-  console.log('Message handled in the background!', remoteMessage);
-});
+// Safely initialize Firebase messaging background handler
+try {
+  messaging().setBackgroundMessageHandler(async remoteMessage => {
+    console.log('Message handled in the background!', remoteMessage);
+  });
+} catch (error) {
+  console.error('[Navigation] Failed to set background message handler:', error);
+  // Don't crash if Firebase messaging fails to initialize
+}
 
 export const AppNavigationContainer = () => {
   const [fontsLoaded] = useFonts({
@@ -99,17 +105,22 @@ export const AppNavigationContainer = () => {
       }
 
       // getInitialNotification: When the application is opened from a quit state.
-      const message = await messaging().getInitialNotification();
-      if (message) {
-        const notification = findNotificationFromFCM({ message });
-        const camelCaseNotification = transformNotification(notification);
-        const conversationLink = findConversationLinkFromPush({
-          notification: camelCaseNotification,
-          installationUrl,
-        });
-        if (conversationLink) {
-          return conversationLink;
+      try {
+        const message = await messaging().getInitialNotification();
+        if (message) {
+          const notification = findNotificationFromFCM({ message });
+          const camelCaseNotification = transformNotification(notification);
+          const conversationLink = findConversationLinkFromPush({
+            notification: camelCaseNotification,
+            installationUrl,
+          });
+          if (conversationLink) {
+            return conversationLink;
+          }
         }
+      } catch (error) {
+        console.error('[Navigation] Failed to get initial notification:', error);
+        // Continue without initial notification
       }
       return undefined;
     },
@@ -120,24 +131,41 @@ export const AppNavigationContainer = () => {
       const subscription = Linking.addEventListener('url', onReceiveURL);
 
       //onNotificationOpenedApp: When the application is running, but in the background.
-      const unsubscribeNotification = messaging().onNotificationOpenedApp(message => {
-        if (message) {
-          const notification = findNotificationFromFCM({ message });
-          const camelCaseNotification = transformNotification(notification);
+      let unsubscribeNotification: (() => void) | null = null;
+      try {
+        unsubscribeNotification = messaging().onNotificationOpenedApp(message => {
+          if (message) {
+            try {
+              const notification = findNotificationFromFCM({ message });
+              const camelCaseNotification = transformNotification(notification);
 
-          const conversationLink = findConversationLinkFromPush({
-            notification: camelCaseNotification,
-            installationUrl,
-          });
-          if (conversationLink) {
-            listener(conversationLink);
+              const conversationLink = findConversationLinkFromPush({
+                notification: camelCaseNotification,
+                installationUrl,
+              });
+              if (conversationLink) {
+                listener(conversationLink);
+              }
+            } catch (error) {
+              console.error('[Navigation] Error processing notification:', error);
+            }
           }
-        }
-      });
+        });
+      } catch (error) {
+        console.error('[Navigation] Failed to set up notification listener:', error);
+        // Create a no-op unsubscribe function if setup fails
+        unsubscribeNotification = () => {};
+      }
 
       return () => {
-        subscription.remove();
-        unsubscribeNotification();
+        try {
+          subscription.remove();
+          if (unsubscribeNotification) {
+            unsubscribeNotification();
+          }
+        } catch (error) {
+          console.error('[Navigation] Error cleaning up listeners:', error);
+        }
       };
     },
   };
@@ -146,12 +174,22 @@ export const AppNavigationContainer = () => {
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
-      await SplashScreen.hideAsync();
+      try {
+        await SplashScreen.hideAsync();
+      } catch (error) {
+        console.error('[Navigation] Failed to hide splash screen:', error);
+        // Continue even if splash screen fails to hide
+      }
     }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return null;
+    // Show loading indicator while fonts are loading
+    return (
+      <View style={styles.navigationLayout}>
+        <ActivityIndicator animating size="large" />
+      </View>
+    );
   }
 
   return (
