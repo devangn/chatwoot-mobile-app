@@ -139,33 +139,42 @@ export const AudioRecorder = ({
           setArPlayerReady(true);
         } else {
           console.warn('[AudioRecorder] Player initialization returned null, retrying...');
-          // Retry after a longer delay if first attempt failed
-          setTimeout(() => {
-            const retryPlayer = createARPlayer();
-            if (retryPlayer) {
-              console.log('[AudioRecorder] Player initialized on retry');
-              setArPlayerReady(true);
-            } else {
-              console.error('[AudioRecorder] Failed to initialize player after retry');
-              Alert.alert(
-                'Error',
-                'Failed to initialize audio recorder. Please restart the app.',
-              );
+          // Retry with exponential backoff
+          let retryCount = 0;
+          const maxRetries = 3;
+          const retry = () => {
+            if (retryCount >= maxRetries) {
+              console.error('[AudioRecorder] Failed to initialize player after all retries');
+              // Don't show alert - just log and let user try again later
+              return;
             }
-          }, 500);
+            retryCount++;
+            setTimeout(() => {
+              const retryPlayer = createARPlayer();
+              if (retryPlayer) {
+                console.log('[AudioRecorder] Player initialized on retry', retryCount);
+                setArPlayerReady(true);
+              } else {
+                retry();
+              }
+            }, 300 * retryCount); // 300ms, 600ms, 900ms
+          };
+          retry();
         }
       } catch (error) {
         console.error('[AudioRecorder] Failed to initialize player:', error);
-        Alert.alert(
-          'Error',
-          'Failed to initialize audio recorder. Please restart the app.',
-        );
+        // Don't show alert - just retry silently
+        setTimeout(() => {
+          const retryPlayer = createARPlayer();
+          if (retryPlayer) {
+            setArPlayerReady(true);
+          }
+        }, 500);
       }
     };
 
-    // Small delay to ensure runtime is fully ready
-    const timer = setTimeout(initializePlayer, 200);
-    return () => clearTimeout(timer);
+    // Start initialization immediately - no delay needed if runtime is ready
+    initializePlayer();
   }, []);
 
   useEffect(() => {
@@ -297,19 +306,31 @@ export const AudioRecorder = ({
 
   const sendRecordedMessage = () => {
     if (isSending) return;
-    if (!arPlayerReady) {
-      Alert.alert('Error', 'Audio recorder is not ready. Please wait a moment and try again.');
-      return;
-    }
     setIsSending(true);
     try {
-      const player = getARPlayer();
+      // Try to get player, create if needed
+      let player = getARPlayer();
       if (!player) {
-        // Player should exist if arPlayerReady is true, but handle edge case
-        console.error('[AudioRecorder] Player is null despite arPlayerReady being true');
-        Alert.alert('Error', 'Audio recorder is not initialized. Please try again.');
-        setIsSending(false);
-        return;
+        // If not ready, try to create it now
+        console.log('[AudioRecorder] Player not ready, attempting to create...');
+        player = createARPlayer();
+        if (!player) {
+          // Still failed, wait a bit and retry
+          setTimeout(() => {
+            const retryPlayer = createARPlayer();
+            if (retryPlayer) {
+              setArPlayerReady(true);
+              // Retry the send operation
+              sendRecordedMessage();
+            } else {
+              Alert.alert('Error', 'Failed to stop recording. Please try again.');
+              setIsSending(false);
+            }
+          }, 300);
+          return;
+        } else {
+          setArPlayerReady(true);
+        }
       }
       player.stopRecorder()
         .then(async value => {
