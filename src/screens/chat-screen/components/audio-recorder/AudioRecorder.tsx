@@ -264,11 +264,19 @@ export const AudioRecorder = ({
 
   const sendRecordedMessage = () => {
     if (isSending) return;
+    if (!arPlayerReady) {
+      Alert.alert('Error', 'Audio recorder is not ready. Please wait a moment and try again.');
+      return;
+    }
     setIsSending(true);
     try {
       const player = getARPlayer();
       if (!player) {
-        throw new Error('AudioRecorderPlayer not initialized');
+        // Player should exist if arPlayerReady is true, but handle edge case
+        console.error('[AudioRecorder] Player is null despite arPlayerReady being true');
+        Alert.alert('Error', 'Audio recorder is not initialized. Please try again.');
+        setIsSending(false);
+        return;
       }
       player.stopRecorder()
         .then(async value => {
@@ -287,17 +295,25 @@ export const AudioRecorder = ({
         })
         .catch(e => {
           console.error('[AudioRecorder] Recording error:', e);
-          Alert.alert('Recording Error', e.toString());
+          Alert.alert('Recording Error', e instanceof Error ? e.message : String(e));
         })
         .finally(() => {
           setIsSending(false);
         });
     } catch (error) {
       console.error('[AudioRecorder] Error in sendRecordedMessage:', error);
-      Alert.alert(
-        'Error stopping recorder',
-        error instanceof Error ? error.message : String(error),
-      );
+      // Don't show alert if it's a constructor error - user already knows
+      if (error instanceof Error && error.message.includes('constructor')) {
+        Alert.alert(
+          'Error',
+          'Audio recorder is not ready. Please close and try recording again.',
+        );
+      } else {
+        Alert.alert(
+          'Error stopping recorder',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
       setIsSending(false);
     }
   };
