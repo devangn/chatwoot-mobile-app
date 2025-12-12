@@ -4,14 +4,9 @@ import { LightBox, LightBoxProps } from '@alantoa/lightbox';
 import { Image } from 'expo-image';
 import { tailwind } from '@/theme';
 
-// Lazy-load AnimatedExpoImage to avoid "runtime not ready" errors
-let AnimatedExpoImageComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof Image>> | null = null;
-function getAnimatedExpoImage() {
-  if (!AnimatedExpoImageComponent) {
-    AnimatedExpoImageComponent = Animated.createAnimatedComponent(Image);
-  }
-  return AnimatedExpoImageComponent;
-}
+// Create AnimatedExpoImage at module level - this is safe because createAnimatedComponent
+// only creates a wrapper component and doesn't call native code until render
+const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
 
 type ImageCellProps = {
   imageSrc: string;
@@ -22,9 +17,6 @@ type ImageContainerProps = Pick<ImageCellProps, 'imageSrc'> &
 
 export const ImageBubbleContainer = (props: ImageContainerProps) => {
   const { imageSrc, height: lightboxH, width: lightboxW } = props;
-  
-  // Create animated component at component level (not in JSX) to avoid "Element type is invalid" error
-  const AnimatedExpoImage = getAnimatedExpoImage();
 
   return (
     <LightBox

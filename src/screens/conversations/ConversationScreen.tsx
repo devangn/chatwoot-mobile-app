@@ -67,14 +67,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // The screen list thats need to be checked for refreshing the conversations list
 const REFRESH_SCREEN_LIST = [SCREENS.CONVERSATION, SCREENS.INBOX, SCREENS.SETTINGS];
 
-// Lazy-load AnimatedFlashList to avoid "runtime not ready" errors
-let AnimatedFlashListComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof FlashList>> | null = null;
-function getAnimatedFlashList() {
-  if (!AnimatedFlashListComponent) {
-    AnimatedFlashListComponent = Animated.createAnimatedComponent(FlashList);
-  }
-  return AnimatedFlashListComponent;
-}
+// Create AnimatedFlashList at module level to ensure it's ready before first render
+// This avoids "Element type is invalid" errors by ensuring React recognizes the component type
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 type FlashListRenderItemType = {
   item: Conversation;
@@ -243,9 +238,6 @@ const ConversationList = () => {
   );
 
   const shouldShowEmptyLoader = isConversationsLoading && allConversations.length === 0;
-  
-  // Create animated component at component level (not in JSX) to avoid "Element type is invalid" error
-  const AnimatedFlashList = getAnimatedFlashList();
 
   return shouldShowEmptyLoader ? (
     <Animated.View

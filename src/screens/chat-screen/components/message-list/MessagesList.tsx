@@ -19,14 +19,9 @@ export type FlashListRenderProps = {
   index: number;
 };
 
-// Lazy-load AnimatedFlashlist to avoid "runtime not ready" errors
-let AnimatedFlashlistComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof FlashList<Message | { date: string }>>> | null = null;
-function getAnimatedFlashlist() {
-  if (!AnimatedFlashlistComponent) {
-    AnimatedFlashlistComponent = Animated.createAnimatedComponent(FlashList<Message | { date: string }>);
-  }
-  return AnimatedFlashlistComponent;
-}
+// Create AnimatedFlashlist at module level - this is safe because createAnimatedComponent
+// only creates a wrapper component and doesn't call native code until render
+const AnimatedFlashlist = Animated.createAnimatedComponent(FlashList<Message | { date: string }>);
 
 type DateSectionProps = { item: { date: string } };
 
@@ -93,9 +88,6 @@ export const MessagesList = ({
       }),
     };
   });
-
-  // Create animated component at component level (not in JSX) to avoid "Element type is invalid" error
-  const AnimatedFlashlist = getAnimatedFlashlist();
 
   return (
     <Animated.View

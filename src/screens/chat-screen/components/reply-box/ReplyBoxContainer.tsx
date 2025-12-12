@@ -77,14 +77,9 @@ const SHEET_APPEAR_SPRING_CONFIG = {
 //   directUploadsEnabled: true,
 // };
 
-// Lazy-load AnimatedKeyboardStickyView to avoid "runtime not ready" errors
-let AnimatedKeyboardStickyViewComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof KeyboardStickyView>> | null = null;
-function getAnimatedKeyboardStickyView() {
-  if (!AnimatedKeyboardStickyViewComponent) {
-    AnimatedKeyboardStickyViewComponent = Animated.createAnimatedComponent(KeyboardStickyView);
-  }
-  return AnimatedKeyboardStickyViewComponent;
-}
+// Create AnimatedKeyboardStickyView at module level - this is safe because createAnimatedComponent
+// only creates a wrapper component and doesn't call native code until render
+const AnimatedKeyboardStickyView = Animated.createAnimatedComponent(KeyboardStickyView);
 const BottomSheetContent = () => {
   const hapticSelection = useHaptic();
   const dispatch = useAppDispatch();
@@ -384,8 +379,6 @@ const BottomSheetContent = () => {
 
   const shouldShowCannedResponses = messageContent?.charAt(0) === '/';
 
-  const AnimatedKeyboardStickyView = getAnimatedKeyboardStickyView();
-  
   return (
     <AnimatedKeyboardStickyView style={[tailwind.style('bg-white'), animatedInputWrapperStyle]}>
       {!canReply && inbox && conversation && (

@@ -26,15 +26,9 @@ import { useHaptic, useScaleAnimation, useTabBarHeight } from '@/utils';
 import { TabParamList } from './AppTabs';
 import { useAppSelector } from '@/hooks';
 
-// Lazy-load AnimatedBlurView to avoid "runtime not ready" errors
-// Only create it when actually needed (after runtime is ready)
-let AnimatedBlurViewComponent: typeof AnimatedBlurView | null = null;
-function getAnimatedBlurView() {
-  if (!AnimatedBlurViewComponent) {
-    AnimatedBlurViewComponent = Animated.createAnimatedComponent(BlurView);
-  }
-  return AnimatedBlurViewComponent;
-}
+// Create AnimatedBlurView at module level - this is safe because createAnimatedComponent
+// only creates a wrapper component and doesn't call native code until render
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 const tabExitSpringConfig = { damping: 20, stiffness: 360, mass: 1 };
 const tabEnterSpringConfig = { damping: 30, stiffness: 360, mass: 1 };
@@ -81,7 +75,6 @@ const TabBarBackground = (props: TabBarBackgroundProps) => {
   });
 
   if (Platform.OS === 'ios') {
-    const AnimatedBlurView = getAnimatedBlurView();
     return (
       <AnimatedBlurView {...{ blurAmount, blurType }} style={[style, animatedTabBarStyle]}>
         {children}

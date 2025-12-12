@@ -29,14 +29,9 @@ import { selectSortOrder } from '@/store/notification/notificationFilterSlice';
 import { EmptyStateIcon } from '@/svg-icons';
 import { InboxSortTypes } from '@/store/notification/notificationTypes';
 
-// Lazy-load AnimatedFlashlist to avoid "runtime not ready" errors
-let AnimatedFlashlistComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof FlashList<Notification>>> | null = null;
-function getAnimatedFlashlist() {
-  if (!AnimatedFlashlistComponent) {
-    AnimatedFlashlistComponent = Animated.createAnimatedComponent(FlashList<Notification>);
-  }
-  return AnimatedFlashlistComponent;
-}
+// Create AnimatedFlashlist at module level to ensure it's ready before first render
+// This avoids "Element type is invalid" errors by ensuring React recognizes the component type
+const AnimatedFlashlist = Animated.createAnimatedComponent(FlashList<Notification>);
 
 const InboxList = () => {
   const [pageNumber, setPageNumber] = useState(1);
@@ -140,9 +135,6 @@ const InboxList = () => {
   });
 
   const shouldShowEmptyLoader = isNotificationsLoading && notifications.length === 0;
-  
-  // Create animated component at component level (not in JSX) to avoid "Element type is invalid" error
-  const AnimatedFlashlist = getAnimatedFlashlist();
 
   return shouldShowEmptyLoader ? (
     <Animated.View
