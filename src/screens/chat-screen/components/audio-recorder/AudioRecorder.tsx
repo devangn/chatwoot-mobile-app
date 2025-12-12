@@ -26,54 +26,63 @@ import { convertAacToWav } from '@/utils/audioConverter';
 const RecorderSegmentWidth = Dimensions.get('screen').width - 8 - 80 - 12;
 
 // Lazy-load ARPlayer instance to avoid "runtime not ready" errors
-// Only create it when actually needed (after runtime is ready)
+// Only create it when user actually tries to record (not on component mount)
 let arPlayerInstance: AudioRecorderPlayer | null = null;
 let isCreatingPlayer = false;
-let playerCreationFailed = false;
 
 function getARPlayer(): AudioRecorderPlayer | null {
   // If already created, return it
   if (arPlayerInstance) {
     return arPlayerInstance;
   }
-  // If creation previously failed, don't try again (prevents infinite retries)
-  if (playerCreationFailed) {
-    console.warn('[AudioRecorder] Player creation previously failed, not retrying');
-    return null;
-  }
   // If currently creating, return null (prevent multiple simultaneous creations)
   if (isCreatingPlayer) {
     return null;
   }
   // DO NOT try to create here - only return existing instance
-  // Creation should only happen in initializePlayer() useEffect
-  console.warn('[AudioRecorder] Player not initialized yet');
   return null;
 }
 
-function createARPlayer(): AudioRecorderPlayer | null {
-  if (arPlayerInstance) {
-    return arPlayerInstance;
-  }
-  if (isCreatingPlayer) {
-    return null;
-  }
-  if (playerCreationFailed) {
-    return null;
-  }
-  try {
-    isCreatingPlayer = true;
-    console.log('[AudioRecorder] Attempting to create AudioRecorderPlayer...');
-    arPlayerInstance = new AudioRecorderPlayer();
-    isCreatingPlayer = false;
-    console.log('[AudioRecorder] AudioRecorderPlayer created successfully');
-    return arPlayerInstance;
-  } catch (error) {
-    console.error('[AudioRecorder] Failed to create AudioRecorderPlayer:', error);
-    isCreatingPlayer = false;
-    playerCreationFailed = true;
-    return null;
-  }
+function createARPlayer(): Promise<AudioRecorderPlayer> {
+  return new Promise((resolve, reject) => {
+    // If already created, return it immediately
+    if (arPlayerInstance) {
+      resolve(arPlayerInstance);
+      return;
+    }
+    // If currently creating, wait a bit and retry
+    if (isCreatingPlayer) {
+      setTimeout(() => {
+        createARPlayer().then(resolve).catch(reject);
+      }, 100);
+      return;
+    }
+    // Try to create the instance
+    try {
+      isCreatingPlayer = true;
+      console.log('[AudioRecorder] Creating AudioRecorderPlayer...');
+      // Use setTimeout to ensure we're not in the middle of React render cycle
+      setTimeout(() => {
+        try {
+          arPlayerInstance = new AudioRecorderPlayer();
+          isCreatingPlayer = false;
+          console.log('[AudioRecorder] AudioRecorderPlayer created successfully');
+          resolve(arPlayerInstance);
+        } catch (error) {
+          isCreatingPlayer = false;
+          console.error('[AudioRecorder] Failed to create AudioRecorderPlayer:', error);
+          // Retry after a delay
+          setTimeout(() => {
+            createARPlayer().then(resolve).catch(reject);
+          }, 500);
+        }
+      }, 100); // Small delay to ensure runtime is ready
+    } catch (error) {
+      isCreatingPlayer = false;
+      console.error('[AudioRecorder] Failed to create AudioRecorderPlayer (sync):', error);
+      reject(error);
+    }
+  });
 }
 
 /**
@@ -125,57 +134,6 @@ export const AudioRecorder = ({
   const [isAudioRecording, setIsAudioRecording] = useState(false);
 
   const [recorderData, setRecorderData] = useState<RecordBackType | undefined>(undefined);
-  const [arPlayerReady, setArPlayerReady] = useState(false);
-
-  useEffect(() => {
-    // Ensure AudioRecorderPlayer is created after component mounts (runtime is ready)
-    // This prevents "constructor is not callable" errors
-    const initializePlayer = () => {
-      try {
-        // Use createARPlayer() which actually creates the instance
-        const player = createARPlayer();
-        if (player) {
-          console.log('[AudioRecorder] Player initialized successfully');
-          setArPlayerReady(true);
-        } else {
-          console.warn('[AudioRecorder] Player initialization returned null, retrying...');
-          // Retry with exponential backoff
-          let retryCount = 0;
-          const maxRetries = 3;
-          const retry = () => {
-            if (retryCount >= maxRetries) {
-              console.error('[AudioRecorder] Failed to initialize player after all retries');
-              // Don't show alert - just log and let user try again later
-              return;
-            }
-            retryCount++;
-            setTimeout(() => {
-              const retryPlayer = createARPlayer();
-              if (retryPlayer) {
-                console.log('[AudioRecorder] Player initialized on retry', retryCount);
-                setArPlayerReady(true);
-              } else {
-                retry();
-              }
-            }, 300 * retryCount); // 300ms, 600ms, 900ms
-          };
-          retry();
-        }
-      } catch (error) {
-        console.error('[AudioRecorder] Failed to initialize player:', error);
-        // Don't show alert - just retry silently
-        setTimeout(() => {
-          const retryPlayer = createARPlayer();
-          if (retryPlayer) {
-            setArPlayerReady(true);
-          }
-        }, 500);
-      }
-    };
-
-    // Start initialization immediately - no delay needed if runtime is ready
-    initializePlayer();
-  }, []);
 
   useEffect(() => {
     // Start recording - player will be created if needed
@@ -186,7 +144,7 @@ export const AudioRecorder = ({
         );
 
         if (grants === PermissionsAndroid.RESULTS.GRANTED) {
-          addRecorderListener();
+          await addRecorderListener();
         } else {
           return;
         }
@@ -195,16 +153,10 @@ export const AudioRecorder = ({
         return;
       }
     };
-    const addRecorderListener = () => {
+    const addRecorderListener = async () => {
       try {
-        // Get or create player
-        let player = getARPlayer();
-        if (!player) {
-          player = createARPlayer();
-          if (player) {
-            setArPlayerReady(true);
-          }
-        }
+        // Create player asynchronously - this ensures runtime is ready
+        const player = await createARPlayer();
         if (!player) {
           console.error('[AudioRecorder] Failed to initialize player for recording');
           Alert.alert('Error', 'Failed to start recording. Please try again.');
@@ -310,32 +262,21 @@ export const AudioRecorder = ({
     return audioFile;
   };
 
-  const sendRecordedMessage = () => {
+  const sendRecordedMessage = async () => {
     if (isSending) return;
     setIsSending(true);
     try {
-      // Try to get player, create if needed
+      // Get or create player asynchronously
       let player = getARPlayer();
       if (!player) {
-        // If not ready, try to create it now
-        console.log('[AudioRecorder] Player not ready, attempting to create...');
-        player = createARPlayer();
-        if (!player) {
-          // Still failed, wait a bit and retry
-          setTimeout(() => {
-            const retryPlayer = createARPlayer();
-            if (retryPlayer) {
-              setArPlayerReady(true);
-              // Retry the send operation
-              sendRecordedMessage();
-            } else {
-              Alert.alert('Error', 'Failed to stop recording. Please try again.');
-              setIsSending(false);
-            }
-          }, 300);
+        // Create player if not exists
+        try {
+          player = await createARPlayer();
+        } catch (error) {
+          console.error('[AudioRecorder] Failed to create player for stopping:', error);
+          Alert.alert('Error', 'Failed to stop recording. Please try again.');
+          setIsSending(false);
           return;
-        } else {
-          setArPlayerReady(true);
         }
       }
       player.stopRecorder()
