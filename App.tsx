@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react-native';
-
 import Constants from 'expo-constants';
 import App from './src/app';
 
@@ -11,36 +9,8 @@ import './reanimatedConfig';
 
 const isStorybookEnabled = Constants.expoConfig?.extra?.eas?.storybookEnabled;
 
-if (!__DEV__) {
-  try {
-    const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
-    if (sentryDsn) {
-      Sentry.init({
-        dsn: sentryDsn,
-        tracesSampleRate: 1.0,
-        attachScreenshot: true,
-        enableAutoSessionTracking: true,
-        beforeSend(event) {
-          // Filter out known non-critical errors
-          if (event.exception) {
-            const errorMessage = event.exception.values?.[0]?.value || '';
-            // Don't send device info initialization errors as they're handled gracefully
-            if (errorMessage.includes('DeviceInfo') || errorMessage.includes('InstallReferrer')) {
-              return null;
-            }
-          }
-          return event;
-        },
-      });
-      console.log('[App] Sentry initialized successfully');
-    } else {
-      console.warn('[App] Sentry DSN not configured, skipping initialization');
-    }
-  } catch (error) {
-    console.error('[App] Failed to initialize Sentry:', error);
-    // Don't crash the app if Sentry fails to initialize
-  }
-}
+// Sentry initialization moved to src/app.tsx useEffect to avoid "runtime not ready" errors
+// Initializing at module load time causes crashes because JS runtime isn't ready yet
 
 if (__DEV__) {
   // eslint-disable-next-line
