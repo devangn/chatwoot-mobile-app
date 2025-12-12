@@ -90,7 +90,6 @@ const ActionTabBarBackground = (props: ActionTabBarBackgroundProps) => {
   });
 
   if (Platform.OS === 'ios') {
-    const AnimatedBlurView = getAnimatedBlurView();
     return (
       <AnimatedBlurView {...{ blurAmount, blurType }} style={[style, animatedTabBarStyle]}>
         {children}
