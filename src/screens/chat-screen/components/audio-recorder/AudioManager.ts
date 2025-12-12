@@ -21,6 +21,26 @@ let audioRecorderPlayer: AudioRecorderPlayer | undefined;
 let currentPath: Path;
 let currentCallback: Callback = () => {};
 let currentPosition = 0;
+let isCreatingPlayer = false;
+
+function createAudioPlayer(): AudioRecorderPlayer | null {
+  if (audioRecorderPlayer) {
+    return audioRecorderPlayer;
+  }
+  if (isCreatingPlayer) {
+    return null;
+  }
+  try {
+    isCreatingPlayer = true;
+    audioRecorderPlayer = new AudioRecorderPlayer();
+    isCreatingPlayer = false;
+    return audioRecorderPlayer;
+  } catch (error) {
+    console.error('[AudioManager] Failed to create AudioRecorderPlayer:', error);
+    isCreatingPlayer = false;
+    return null;
+  }
+}
 
 export const startPlayer = async (path: string, callback: Callback) => {
   if (currentPath === undefined) {
@@ -35,7 +55,10 @@ export const startPlayer = async (path: string, callback: Callback) => {
   }
 
   if (audioRecorderPlayer === undefined) {
-    audioRecorderPlayer = new AudioRecorderPlayer();
+    const player = createAudioPlayer();
+    if (!player) {
+      throw new Error('Failed to initialize audio player. Please try again.');
+    }
   }
 
   const shouldBeResumed = currentPath === path && currentPosition > 0;
