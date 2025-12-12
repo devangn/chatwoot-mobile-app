@@ -140,6 +140,9 @@ const InboxList = () => {
   });
 
   const shouldShowEmptyLoader = isNotificationsLoading && notifications.length === 0;
+  
+  // Create animated component at component level (not in JSX) to avoid "Element type is invalid" error
+  const AnimatedFlashlist = getAnimatedFlashlist();
 
   return shouldShowEmptyLoader ? (
     <Animated.View
@@ -159,24 +162,19 @@ const InboxList = () => {
       </Animated.Text>
     </Animated.ScrollView>
   ) : (
-    (() => {
-      const AnimatedFlashlist = getAnimatedFlashlist();
-      return (
-        <AnimatedFlashlist
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-          layout={LinearTransition.springify().damping(18).stiffness(120)}
-          showsVerticalScrollIndicator={false}
-          data={notifications}
-          estimatedItemSize={71}
-          onScroll={scrollHandler}
-          onEndReached={handleOnEndReached}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={ListFooterComponent}
-          renderItem={handleRender}
-          contentContainerStyle={tailwind.style(`pb-[${TAB_BAR_HEIGHT - 1}px]`)}
-        />
-      );
-    })()
+    <AnimatedFlashlist
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+      layout={LinearTransition.springify().damping(18).stiffness(120)}
+      showsVerticalScrollIndicator={false}
+      data={notifications}
+      estimatedItemSize={71}
+      onScroll={scrollHandler}
+      onEndReached={handleOnEndReached}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={ListFooterComponent}
+      renderItem={handleRender}
+      contentContainerStyle={tailwind.style(`pb-[${TAB_BAR_HEIGHT - 1}px]`)}
+    />
   );
 };
 

@@ -22,6 +22,9 @@ type ImageContainerProps = Pick<ImageCellProps, 'imageSrc'> &
 
 export const ImageBubbleContainer = (props: ImageContainerProps) => {
   const { imageSrc, height: lightboxH, width: lightboxW } = props;
+  
+  // Create animated component at component level (not in JSX) to avoid "Element type is invalid" error
+  const AnimatedExpoImage = getAnimatedExpoImage();
 
   return (
     <LightBox
@@ -29,16 +32,11 @@ export const ImageBubbleContainer = (props: ImageContainerProps) => {
       height={lightboxH}
       imgLayout={{ width: lightboxW, height: lightboxH }}
       tapToClose={true}>
-      {(() => {
-        const AnimatedExpoImage = getAnimatedExpoImage();
-        return (
-          <AnimatedExpoImage
-            source={{ uri: imageSrc }}
-            contentFit="cover"
-            style={[tailwind.style('h-full w-full bg-gray-100 overflow-hidden')]}
-          />
-        );
-      })()}
+      <AnimatedExpoImage
+        source={{ uri: imageSrc }}
+        contentFit="cover"
+        style={[tailwind.style('h-full w-full bg-gray-100 overflow-hidden')]}
+      />
     </LightBox>
   );
 };

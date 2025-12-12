@@ -94,6 +94,9 @@ export const MessagesList = ({
     };
   });
 
+  // Create animated component at component level (not in JSX) to avoid "Element type is invalid" error
+  const AnimatedFlashlist = getAnimatedFlashlist();
+
   return (
     <Animated.View
       layout={LinearTransition.springify().damping(38).stiffness(240)}

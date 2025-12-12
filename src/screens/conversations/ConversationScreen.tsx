@@ -243,6 +243,9 @@ const ConversationList = () => {
   );
 
   const shouldShowEmptyLoader = isConversationsLoading && allConversations.length === 0;
+  
+  // Create animated component at component level (not in JSX) to avoid "Element type is invalid" error
+  const AnimatedFlashList = getAnimatedFlashList();
 
   return shouldShowEmptyLoader ? (
     <Animated.View
@@ -262,26 +265,21 @@ const ConversationList = () => {
       </Animated.Text>
     </Animated.ScrollView>
   ) : (
-    (() => {
-      const AnimatedFlashList = getAnimatedFlashList();
-      return (
-        <AnimatedFlashList
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-          layout={LinearTransition.springify().damping(18).stiffness(120)}
-          showsVerticalScrollIndicator={false}
-          data={allConversations}
-          estimatedItemSize={91}
-          onScroll={scrollHandler}
-          onEndReached={handleOnEndReached}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={ListFooterComponent}
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          renderItem={handleRender}
-          contentContainerStyle={tailwind.style(`pb-[${TAB_BAR_HEIGHT - 1}px]`)}
-        />
-      );
-    })()
+    <AnimatedFlashList
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+      layout={LinearTransition.springify().damping(18).stiffness(120)}
+      showsVerticalScrollIndicator={false}
+      data={allConversations}
+      estimatedItemSize={91}
+      onScroll={scrollHandler}
+      onEndReached={handleOnEndReached}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={ListFooterComponent}
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      renderItem={handleRender}
+      contentContainerStyle={tailwind.style(`pb-[${TAB_BAR_HEIGHT - 1}px]`)}
+    />
   );
 };
 
