@@ -136,17 +136,12 @@ export const AudioRecorder = ({
         player.addRecordBackListener((recordingMeta: RecordBackType) => {
           setRecorderData(recordingMeta);
         });
-      const dirs = RNFetchBlob.fs.dirs;
-      const path = Platform.select({
-        ios: `audio-${localRecordedAudioCacheFilePaths.length}.m4a`,
-        android: `${dirs.CacheDir}/audio-${localRecordedAudioCacheFilePaths.length}.aac`,
-      });
+        const dirs = RNFetchBlob.fs.dirs;
+        const path = Platform.select({
+          ios: `audio-${localRecordedAudioCacheFilePaths.length}.m4a`,
+          android: `${dirs.CacheDir}/audio-${localRecordedAudioCacheFilePaths.length}.aac`,
+        });
 
-        const player = getARPlayer();
-        if (!player) {
-          console.error('[AudioRecorder] Player not initialized');
-          return;
-        }
         player.startRecorder(path, {
           AVFormatIDKeyIOS: AVEncodingOption.aac,
           AVNumberOfChannelsKeyIOS: 2,
