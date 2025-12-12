@@ -84,8 +84,32 @@ export const AudioRecorder = ({
   const [isAudioRecording, setIsAudioRecording] = useState(false);
 
   const [recorderData, setRecorderData] = useState<RecordBackType | undefined>(undefined);
+  const [arPlayerReady, setArPlayerReady] = useState(false);
 
   useEffect(() => {
+    // Ensure AudioRecorderPlayer is created after component mounts (runtime is ready)
+    // This prevents "constructor is not callable" errors
+    const initializePlayer = () => {
+      try {
+        // Force creation of the instance to ensure it's ready
+        const player = getARPlayer();
+        if (player) {
+          setArPlayerReady(true);
+        }
+      } catch (error) {
+        console.error('[AudioRecorder] Failed to initialize player:', error);
+      }
+    };
+
+    // Small delay to ensure runtime is fully ready
+    const timer = setTimeout(initializePlayer, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Only start recording after player is ready
+    if (!arPlayerReady) return;
+
     const requestAndroidPermission = async () => {
       try {
         const grants = await PermissionsAndroid.request(
@@ -103,38 +127,56 @@ export const AudioRecorder = ({
       }
     };
     const addRecorderListener = () => {
-      getARPlayer().addRecordBackListener((recordingMeta: RecordBackType) => {
-        setRecorderData(recordingMeta);
-      });
+      try {
+        const player = getARPlayer();
+        if (!player) {
+          console.error('[AudioRecorder] Player not initialized');
+          return;
+        }
+        player.addRecordBackListener((recordingMeta: RecordBackType) => {
+          setRecorderData(recordingMeta);
+        });
       const dirs = RNFetchBlob.fs.dirs;
       const path = Platform.select({
         ios: `audio-${localRecordedAudioCacheFilePaths.length}.m4a`,
         android: `${dirs.CacheDir}/audio-${localRecordedAudioCacheFilePaths.length}.aac`,
       });
 
-      getARPlayer().startRecorder(path, {
-        AVFormatIDKeyIOS: AVEncodingOption.aac,
-        AVNumberOfChannelsKeyIOS: 2,
-        AVSampleRateKeyIOS: 44100,
-        AudioSourceAndroid: 1, // MIC
-        OutputFormatAndroid: 6, // AAC_ADTS
-        AudioEncoderAndroid: 3, // AAC
-        AudioSamplingRateAndroid: 16000,
-        AudioEncodingBitRateAndroid: 128000,
-        AudioChannelsAndroid: 2,
-      })
-        .then((value: string) => {
-          if (value) {
-            setIsAudioRecording(true);
-          }
+        const player = getARPlayer();
+        if (!player) {
+          console.error('[AudioRecorder] Player not initialized');
+          return;
+        }
+        player.startRecorder(path, {
+          AVFormatIDKeyIOS: AVEncodingOption.aac,
+          AVNumberOfChannelsKeyIOS: 2,
+          AVSampleRateKeyIOS: 44100,
+          AudioSourceAndroid: 1, // MIC
+          OutputFormatAndroid: 6, // AAC_ADTS
+          AudioEncoderAndroid: 3, // AAC
+          AudioSamplingRateAndroid: 16000,
+          AudioEncodingBitRateAndroid: 128000,
+          AudioChannelsAndroid: 2,
         })
-        .catch(error => {
-          Alert.alert(
-            'Error preparing audio file',
-            error instanceof Error ? error.message : String(error),
-          );
-          deleteRecorder();
-        });
+          .then((value: string) => {
+            if (value) {
+              setIsAudioRecording(true);
+            }
+          })
+          .catch(error => {
+            Alert.alert(
+              'Error preparing audio file',
+              error instanceof Error ? error.message : String(error),
+            );
+            deleteRecorder();
+          });
+      } catch (error) {
+        console.error('[AudioRecorder] Error in addRecorderListener:', error);
+        Alert.alert(
+          'Error initializing recorder',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     };
     if (Platform.OS === 'android') {
       requestAndroidPermission();
@@ -142,11 +184,19 @@ export const AudioRecorder = ({
       addRecorderListener();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [arPlayerReady]);
 
   const deleteRecorder = async () => {
-    await getARPlayer().stopRecorder();
-    setIsVoiceRecorderOpen(false);
+    try {
+      const player = getARPlayer();
+      if (player) {
+        await player.stopRecorder();
+      }
+    } catch (error) {
+      console.error('[AudioRecorder] Error stopping recorder:', error);
+    } finally {
+      setIsVoiceRecorderOpen(false);
+    }
   };
 
   const createAudioFile = async (value: string) => {
@@ -191,38 +241,63 @@ export const AudioRecorder = ({
   const sendRecordedMessage = () => {
     if (isSending) return;
     setIsSending(true);
-    getARPlayer().stopRecorder()
-      .then(async value => {
-        try {
-          const audioFile = await createAudioFile(value);
-          dispatch(addNewCachePath(audioFile.originalPath));
-          setIsVoiceRecorderOpen(false);
-          onRecordingComplete(audioFile as unknown as File);
-        } catch (error) {
-          Sentry.captureException(error);
-          Alert.alert(
-            'Error preparing audio file',
-            error instanceof Error ? error.message : String(error),
-          );
-        }
-      })
-      .catch(e => {
-        console.error('Recording error:', e);
-        Alert.alert('Recording Error', e.toString());
-      })
-      .finally(() => {
-        setIsSending(false);
-      });
+    try {
+      const player = getARPlayer();
+      if (!player) {
+        throw new Error('AudioRecorderPlayer not initialized');
+      }
+      player.stopRecorder()
+        .then(async value => {
+          try {
+            const audioFile = await createAudioFile(value);
+            dispatch(addNewCachePath(audioFile.originalPath));
+            setIsVoiceRecorderOpen(false);
+            onRecordingComplete(audioFile as unknown as File);
+          } catch (error) {
+            Sentry.captureException(error);
+            Alert.alert(
+              'Error preparing audio file',
+              error instanceof Error ? error.message : String(error),
+            );
+          }
+        })
+        .catch(e => {
+          console.error('[AudioRecorder] Recording error:', e);
+          Alert.alert('Recording Error', e.toString());
+        })
+        .finally(() => {
+          setIsSending(false);
+        });
+    } catch (error) {
+      console.error('[AudioRecorder] Error in sendRecordedMessage:', error);
+      Alert.alert(
+        'Error stopping recorder',
+        error instanceof Error ? error.message : String(error),
+      );
+      setIsSending(false);
+    }
   };
 
   const toggleRecorder = async () => {
-    if (isAudioRecording) {
-      await getARPlayer().pauseRecorder();
-    } else {
-      await getARPlayer().resumeRecorder();
+    try {
+      const player = getARPlayer();
+      if (!player) {
+        console.error('[AudioRecorder] Player not initialized');
+        return;
+      }
+      if (isAudioRecording) {
+        await player.pauseRecorder();
+      } else {
+        await player.resumeRecorder();
+      }
+      setIsAudioRecording(!isAudioRecording);
+    } catch (error) {
+      console.error('[AudioRecorder] Error toggling recorder:', error);
+      Alert.alert(
+        'Error toggling recorder',
+        error instanceof Error ? error.message : String(error),
+      );
     }
-
-    setIsAudioRecording(!isAudioRecording);
   };
 
   return (
