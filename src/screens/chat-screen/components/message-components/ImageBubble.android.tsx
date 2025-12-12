@@ -4,7 +4,14 @@ import { LightBox, LightBoxProps } from '@alantoa/lightbox';
 import { Image } from 'expo-image';
 import { tailwind } from '@/theme';
 
-const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
+// Lazy-load AnimatedExpoImage to avoid "runtime not ready" errors
+let AnimatedExpoImageComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof Image>> | null = null;
+function getAnimatedExpoImage() {
+  if (!AnimatedExpoImageComponent) {
+    AnimatedExpoImageComponent = Animated.createAnimatedComponent(Image);
+  }
+  return AnimatedExpoImageComponent;
+}
 
 type ImageCellProps = {
   imageSrc: string;
@@ -22,11 +29,16 @@ export const ImageBubbleContainer = (props: ImageContainerProps) => {
       height={lightboxH}
       imgLayout={{ width: lightboxW, height: lightboxH }}
       tapToClose={true}>
-      <AnimatedExpoImage
-        source={{ uri: imageSrc }}
-        contentFit="cover"
-        style={[tailwind.style('h-full w-full bg-gray-100 overflow-hidden')]}
-      />
+      {(() => {
+        const AnimatedExpoImage = getAnimatedExpoImage();
+        return (
+          <AnimatedExpoImage
+            source={{ uri: imageSrc }}
+            contentFit="cover"
+            style={[tailwind.style('h-full w-full bg-gray-100 overflow-hidden')]}
+          />
+        );
+      })()}
     </LightBox>
   );
 };

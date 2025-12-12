@@ -28,7 +28,14 @@ const SNAP_POINT = 96;
 const FRICTION = 10;
 const DRAG_TOSS = 0.05;
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+// Lazy-load AnimatedPressable to avoid "runtime not ready" errors
+let AnimatedPressableComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof Pressable>> | null = null;
+function getAnimatedPressable() {
+  if (!AnimatedPressableComponent) {
+    AnimatedPressableComponent = Animated.createAnimatedComponent(Pressable);
+  }
+  return AnimatedPressableComponent;
+}
 
 const rowCloseSpringConfig = { damping: 30, stiffness: 360, mass: 1 };
 const overSwipedSpringConfig = { damping: 20, stiffness: 180 };
@@ -444,6 +451,8 @@ export const Swipeable = forwardRef((props: SwipeableProps, _ref) => {
 
   const cellGestures = Gesture.Race(panGesture, tapGesture, longPressGesture, flingGesture);
 
+  const AnimatedPressable = getAnimatedPressable();
+  
   return (
     <AnimatedNativeView style={tailwind.style('flex flex-row')}>
       <AnimatedPressable

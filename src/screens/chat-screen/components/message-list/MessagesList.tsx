@@ -19,7 +19,14 @@ export type FlashListRenderProps = {
   index: number;
 };
 
-const AnimatedFlashlist = Animated.createAnimatedComponent(FlashList<Message | { date: string }>);
+// Lazy-load AnimatedFlashlist to avoid "runtime not ready" errors
+let AnimatedFlashlistComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof FlashList<Message | { date: string }>>> | null = null;
+function getAnimatedFlashlist() {
+  if (!AnimatedFlashlistComponent) {
+    AnimatedFlashlistComponent = Animated.createAnimatedComponent(FlashList<Message | { date: string }>);
+  }
+  return AnimatedFlashlistComponent;
+}
 
 type DateSectionProps = { item: { date: string } };
 

@@ -67,7 +67,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // The screen list thats need to be checked for refreshing the conversations list
 const REFRESH_SCREEN_LIST = [SCREENS.CONVERSATION, SCREENS.INBOX, SCREENS.SETTINGS];
 
-const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
+// Lazy-load AnimatedFlashList to avoid "runtime not ready" errors
+let AnimatedFlashListComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof FlashList>> | null = null;
+function getAnimatedFlashList() {
+  if (!AnimatedFlashListComponent) {
+    AnimatedFlashListComponent = Animated.createAnimatedComponent(FlashList);
+  }
+  return AnimatedFlashListComponent;
+}
 
 type FlashListRenderItemType = {
   item: Conversation;
@@ -255,21 +262,26 @@ const ConversationList = () => {
       </Animated.Text>
     </Animated.ScrollView>
   ) : (
-    <AnimatedFlashList
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-      layout={LinearTransition.springify().damping(18).stiffness(120)}
-      showsVerticalScrollIndicator={false}
-      data={allConversations}
-      estimatedItemSize={91}
-      onScroll={scrollHandler}
-      onEndReached={handleOnEndReached}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={ListFooterComponent}
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      renderItem={handleRender}
-      contentContainerStyle={tailwind.style(`pb-[${TAB_BAR_HEIGHT - 1}px]`)}
-    />
+    (() => {
+      const AnimatedFlashList = getAnimatedFlashList();
+      return (
+        <AnimatedFlashList
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+          layout={LinearTransition.springify().damping(18).stiffness(120)}
+          showsVerticalScrollIndicator={false}
+          data={allConversations}
+          estimatedItemSize={91}
+          onScroll={scrollHandler}
+          onEndReached={handleOnEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={ListFooterComponent}
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          renderItem={handleRender}
+          contentContainerStyle={tailwind.style(`pb-[${TAB_BAR_HEIGHT - 1}px]`)}
+        />
+      );
+    })()
   );
 };
 

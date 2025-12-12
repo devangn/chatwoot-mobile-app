@@ -29,7 +29,14 @@ import { selectSortOrder } from '@/store/notification/notificationFilterSlice';
 import { EmptyStateIcon } from '@/svg-icons';
 import { InboxSortTypes } from '@/store/notification/notificationTypes';
 
-const AnimatedFlashlist = Animated.createAnimatedComponent(FlashList<Notification>);
+// Lazy-load AnimatedFlashlist to avoid "runtime not ready" errors
+let AnimatedFlashlistComponent: ReturnType<typeof Animated.createAnimatedComponent<typeof FlashList<Notification>>> | null = null;
+function getAnimatedFlashlist() {
+  if (!AnimatedFlashlistComponent) {
+    AnimatedFlashlistComponent = Animated.createAnimatedComponent(FlashList<Notification>);
+  }
+  return AnimatedFlashlistComponent;
+}
 
 const InboxList = () => {
   const [pageNumber, setPageNumber] = useState(1);
@@ -152,19 +159,24 @@ const InboxList = () => {
       </Animated.Text>
     </Animated.ScrollView>
   ) : (
-    <AnimatedFlashlist
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
-      layout={LinearTransition.springify().damping(18).stiffness(120)}
-      showsVerticalScrollIndicator={false}
-      data={notifications}
-      estimatedItemSize={71}
-      onScroll={scrollHandler}
-      onEndReached={handleOnEndReached}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={ListFooterComponent}
-      renderItem={handleRender}
-      contentContainerStyle={tailwind.style(`pb-[${TAB_BAR_HEIGHT - 1}px]`)}
-    />
+    (() => {
+      const AnimatedFlashlist = getAnimatedFlashlist();
+      return (
+        <AnimatedFlashlist
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+          layout={LinearTransition.springify().damping(18).stiffness(120)}
+          showsVerticalScrollIndicator={false}
+          data={notifications}
+          estimatedItemSize={71}
+          onScroll={scrollHandler}
+          onEndReached={handleOnEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={ListFooterComponent}
+          renderItem={handleRender}
+          contentContainerStyle={tailwind.style(`pb-[${TAB_BAR_HEIGHT - 1}px]`)}
+        />
+      );
+    })()
   );
 };
 
