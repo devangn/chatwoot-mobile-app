@@ -104,12 +104,13 @@ function getAnalyticsHelper(): AnalyticsHelper {
   return analyticsInstance;
 }
 
-// Export the getter function, not the instance
-// This ensures the instance is only created when first accessed
-const AnalyticsHelperProxy = new Proxy({} as AnalyticsHelper, {
-  get(_target, prop) {
-    return getAnalyticsHelper()[prop as keyof AnalyticsHelper];
+// Export a wrapper object that lazily creates the instance
+// This ensures the instance is only created when methods are first called
+export default {
+  identify(user: User): void {
+    getAnalyticsHelper().identify(user);
   },
-});
-
-export default AnalyticsHelperProxy;
+  track(eventName: string, properties: AnalyticsProperties = {}): Promise<unknown> | void {
+    return getAnalyticsHelper().track(eventName, properties);
+  },
+};
