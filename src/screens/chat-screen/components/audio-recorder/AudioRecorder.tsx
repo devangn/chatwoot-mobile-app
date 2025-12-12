@@ -29,24 +29,49 @@ const RecorderSegmentWidth = Dimensions.get('screen').width - 8 - 80 - 12;
 // Only create it when actually needed (after runtime is ready)
 let arPlayerInstance: AudioRecorderPlayer | null = null;
 let isCreatingPlayer = false;
+let playerCreationFailed = false;
+
 function getARPlayer(): AudioRecorderPlayer | null {
   // If already created, return it
   if (arPlayerInstance) {
     return arPlayerInstance;
   }
+  // If creation previously failed, don't try again (prevents infinite retries)
+  if (playerCreationFailed) {
+    console.warn('[AudioRecorder] Player creation previously failed, not retrying');
+    return null;
+  }
   // If currently creating, return null (prevent multiple simultaneous creations)
   if (isCreatingPlayer) {
     return null;
   }
-  // Try to create the instance
+  // DO NOT try to create here - only return existing instance
+  // Creation should only happen in initializePlayer() useEffect
+  console.warn('[AudioRecorder] Player not initialized yet');
+  return null;
+}
+
+function createARPlayer(): AudioRecorderPlayer | null {
+  if (arPlayerInstance) {
+    return arPlayerInstance;
+  }
+  if (isCreatingPlayer) {
+    return null;
+  }
+  if (playerCreationFailed) {
+    return null;
+  }
   try {
     isCreatingPlayer = true;
+    console.log('[AudioRecorder] Attempting to create AudioRecorderPlayer...');
     arPlayerInstance = new AudioRecorderPlayer();
     isCreatingPlayer = false;
+    console.log('[AudioRecorder] AudioRecorderPlayer created successfully');
     return arPlayerInstance;
   } catch (error) {
     console.error('[AudioRecorder] Failed to create AudioRecorderPlayer:', error);
     isCreatingPlayer = false;
+    playerCreationFailed = true;
     return null;
   }
 }
@@ -107,8 +132,8 @@ export const AudioRecorder = ({
     // This prevents "constructor is not callable" errors
     const initializePlayer = () => {
       try {
-        // Force creation of the instance to ensure it's ready
-        const player = getARPlayer();
+        // Use createARPlayer() which actually creates the instance
+        const player = createARPlayer();
         if (player) {
           console.log('[AudioRecorder] Player initialized successfully');
           setArPlayerReady(true);
@@ -116,17 +141,25 @@ export const AudioRecorder = ({
           console.warn('[AudioRecorder] Player initialization returned null, retrying...');
           // Retry after a longer delay if first attempt failed
           setTimeout(() => {
-            const retryPlayer = getARPlayer();
+            const retryPlayer = createARPlayer();
             if (retryPlayer) {
               console.log('[AudioRecorder] Player initialized on retry');
               setArPlayerReady(true);
             } else {
               console.error('[AudioRecorder] Failed to initialize player after retry');
+              Alert.alert(
+                'Error',
+                'Failed to initialize audio recorder. Please restart the app.',
+              );
             }
           }, 500);
         }
       } catch (error) {
         console.error('[AudioRecorder] Failed to initialize player:', error);
+        Alert.alert(
+          'Error',
+          'Failed to initialize audio recorder. Please restart the app.',
+        );
       }
     };
 
