@@ -208,7 +208,7 @@ export const AudioRecorder = ({
       addRecorderListener();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [arPlayerReady]);
+  }, []);
 
   const deleteRecorder = async () => {
     try {
