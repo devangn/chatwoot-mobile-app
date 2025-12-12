@@ -26,7 +26,15 @@ import { useHaptic, useScaleAnimation, useTabBarHeight } from '@/utils';
 import { TabParamList } from './AppTabs';
 import { useAppSelector } from '@/hooks';
 
-const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
+// Lazy-load AnimatedBlurView to avoid "runtime not ready" errors
+// Only create it when actually needed (after runtime is ready)
+let AnimatedBlurViewComponent: typeof AnimatedBlurView | null = null;
+function getAnimatedBlurView() {
+  if (!AnimatedBlurViewComponent) {
+    AnimatedBlurViewComponent = Animated.createAnimatedComponent(BlurView);
+  }
+  return AnimatedBlurViewComponent;
+}
 
 const tabExitSpringConfig = { damping: 20, stiffness: 360, mass: 1 };
 const tabEnterSpringConfig = { damping: 30, stiffness: 360, mass: 1 };
@@ -72,13 +80,15 @@ const TabBarBackground = (props: TabBarBackgroundProps) => {
     };
   });
 
-  return Platform.OS === 'ios' ? (
-    <AnimatedBlurView {...{ blurAmount, blurType }} style={[style, animatedTabBarStyle]}>
-      {children}
-    </AnimatedBlurView>
-  ) : (
-    <Animated.View style={[style, animatedTabBarStyle]}>{children}</Animated.View>
-  );
+  if (Platform.OS === 'ios') {
+    const AnimatedBlurView = getAnimatedBlurView();
+    return (
+      <AnimatedBlurView {...{ blurAmount, blurType }} style={[style, animatedTabBarStyle]}>
+        {children}
+      </AnimatedBlurView>
+    );
+  }
+  return <Animated.View style={[style, animatedTabBarStyle]}>{children}</Animated.View>;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,13 +127,9 @@ export const BottomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
   const hapticSelection = useHaptic();
   const tabBarHeight = useTabBarHeight();
   
-  // Safely get safe area insets with fallback
-  let insets = { bottom: 0 };
-  try {
-    insets = useSafeAreaInsets();
-  } catch (error) {
-    console.warn('[BottomTabBar] SafeAreaProvider not available, using fallback insets');
-  }
+  // Get safe area insets - SafeAreaProvider should be available from AppNavigator
+  // If not available, the hook will throw, but that's expected to be caught by ErrorBoundary
+  const insets = useSafeAreaInsets();
 
   // Memoize press handlers using useCallback
   const createPressHandler = React.useCallback(
