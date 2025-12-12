@@ -28,11 +28,27 @@ const RecorderSegmentWidth = Dimensions.get('screen').width - 8 - 80 - 12;
 // Lazy-load ARPlayer instance to avoid "runtime not ready" errors
 // Only create it when actually needed (after runtime is ready)
 let arPlayerInstance: AudioRecorderPlayer | null = null;
-function getARPlayer(): AudioRecorderPlayer {
-  if (!arPlayerInstance) {
-    arPlayerInstance = new AudioRecorderPlayer();
+let isCreatingPlayer = false;
+function getARPlayer(): AudioRecorderPlayer | null {
+  // If already created, return it
+  if (arPlayerInstance) {
+    return arPlayerInstance;
   }
-  return arPlayerInstance;
+  // If currently creating, return null (prevent multiple simultaneous creations)
+  if (isCreatingPlayer) {
+    return null;
+  }
+  // Try to create the instance
+  try {
+    isCreatingPlayer = true;
+    arPlayerInstance = new AudioRecorderPlayer();
+    isCreatingPlayer = false;
+    return arPlayerInstance;
+  } catch (error) {
+    console.error('[AudioRecorder] Failed to create AudioRecorderPlayer:', error);
+    isCreatingPlayer = false;
+    return null;
+  }
 }
 
 /**
@@ -94,7 +110,20 @@ export const AudioRecorder = ({
         // Force creation of the instance to ensure it's ready
         const player = getARPlayer();
         if (player) {
+          console.log('[AudioRecorder] Player initialized successfully');
           setArPlayerReady(true);
+        } else {
+          console.warn('[AudioRecorder] Player initialization returned null, retrying...');
+          // Retry after a longer delay if first attempt failed
+          setTimeout(() => {
+            const retryPlayer = getARPlayer();
+            if (retryPlayer) {
+              console.log('[AudioRecorder] Player initialized on retry');
+              setArPlayerReady(true);
+            } else {
+              console.error('[AudioRecorder] Failed to initialize player after retry');
+            }
+          }, 500);
         }
       } catch (error) {
         console.error('[AudioRecorder] Failed to initialize player:', error);
@@ -102,7 +131,7 @@ export const AudioRecorder = ({
     };
 
     // Small delay to ensure runtime is fully ready
-    const timer = setTimeout(initializePlayer, 100);
+    const timer = setTimeout(initializePlayer, 200);
     return () => clearTimeout(timer);
   }, []);
 
