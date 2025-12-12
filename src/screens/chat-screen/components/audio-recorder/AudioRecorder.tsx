@@ -178,9 +178,7 @@ export const AudioRecorder = ({
   }, []);
 
   useEffect(() => {
-    // Only start recording after player is ready
-    if (!arPlayerReady) return;
-
+    // Start recording - player will be created if needed
     const requestAndroidPermission = async () => {
       try {
         const grants = await PermissionsAndroid.request(
@@ -199,9 +197,17 @@ export const AudioRecorder = ({
     };
     const addRecorderListener = () => {
       try {
-        const player = getARPlayer();
+        // Get or create player
+        let player = getARPlayer();
         if (!player) {
-          console.error('[AudioRecorder] Player not initialized');
+          player = createARPlayer();
+          if (player) {
+            setArPlayerReady(true);
+          }
+        }
+        if (!player) {
+          console.error('[AudioRecorder] Failed to initialize player for recording');
+          Alert.alert('Error', 'Failed to start recording. Please try again.');
           return;
         }
         player.addRecordBackListener((recordingMeta: RecordBackType) => {
