@@ -116,7 +116,14 @@ const TabItem = (props: any) => {
 export const BottomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
   const hapticSelection = useHaptic();
   const tabBarHeight = useTabBarHeight();
-  const insets = useSafeAreaInsets();
+  
+  // Safely get safe area insets with fallback
+  let insets = { bottom: 0 };
+  try {
+    insets = useSafeAreaInsets();
+  } catch (error) {
+    console.warn('[BottomTabBar] SafeAreaProvider not available, using fallback insets');
+  }
 
   // Memoize press handlers using useCallback
   const createPressHandler = React.useCallback(
@@ -162,12 +169,12 @@ export const BottomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
           ),
         ],
         android: [
-          tailwind.style(
-            'flex flex-row absolute w-full pl-[72px] pr-[71px] py-[11px] bg-white',
-            `h-[${tabBarHeight}px]`,
-          ),
           {
-            bottom: insets.bottom,
+            ...tailwind.style(
+              'flex flex-row absolute w-full pl-[72px] pr-[71px] py-[11px] bg-white',
+              `h-[${tabBarHeight}px]`,
+            ),
+            bottom: insets.bottom || 0,
           },
         ],
       })}>
