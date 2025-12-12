@@ -25,7 +25,15 @@ import { convertAacToWav } from '@/utils/audioConverter';
 
 const RecorderSegmentWidth = Dimensions.get('screen').width - 8 - 80 - 12;
 
-const ARPlayer = new AudioRecorderPlayer();
+// Lazy-load ARPlayer instance to avoid "runtime not ready" errors
+// Only create it when actually needed (after runtime is ready)
+let arPlayerInstance: AudioRecorderPlayer | null = null;
+function getARPlayer(): AudioRecorderPlayer {
+  if (!arPlayerInstance) {
+    arPlayerInstance = new AudioRecorderPlayer();
+  }
+  return arPlayerInstance;
+}
 
 /**
  * ! Handling Audio Server Side
@@ -95,7 +103,7 @@ export const AudioRecorder = ({
       }
     };
     const addRecorderListener = () => {
-      ARPlayer.addRecordBackListener((recordingMeta: RecordBackType) => {
+      getARPlayer().addRecordBackListener((recordingMeta: RecordBackType) => {
         setRecorderData(recordingMeta);
       });
       const dirs = RNFetchBlob.fs.dirs;
@@ -104,7 +112,7 @@ export const AudioRecorder = ({
         android: `${dirs.CacheDir}/audio-${localRecordedAudioCacheFilePaths.length}.aac`,
       });
 
-      ARPlayer.startRecorder(path, {
+      getARPlayer().startRecorder(path, {
         AVFormatIDKeyIOS: AVEncodingOption.aac,
         AVNumberOfChannelsKeyIOS: 2,
         AVSampleRateKeyIOS: 44100,
@@ -137,7 +145,7 @@ export const AudioRecorder = ({
   }, []);
 
   const deleteRecorder = async () => {
-    await ARPlayer.stopRecorder();
+    await getARPlayer().stopRecorder();
     setIsVoiceRecorderOpen(false);
   };
 
@@ -183,7 +191,7 @@ export const AudioRecorder = ({
   const sendRecordedMessage = () => {
     if (isSending) return;
     setIsSending(true);
-    ARPlayer.stopRecorder()
+    getARPlayer().stopRecorder()
       .then(async value => {
         try {
           const audioFile = await createAudioFile(value);
@@ -209,9 +217,9 @@ export const AudioRecorder = ({
 
   const toggleRecorder = async () => {
     if (isAudioRecording) {
-      await ARPlayer.pauseRecorder();
+      await getARPlayer().pauseRecorder();
     } else {
-      await ARPlayer.resumeRecorder();
+      await getARPlayer().resumeRecorder();
     }
 
     setIsAudioRecording(!isAudioRecording);
