@@ -25,16 +25,6 @@ import Inter50024 from '@/assets/fonts/Inter-500-24.ttf';
 import Inter58024 from '@/assets/fonts/Inter-580-24.ttf';
 import Inter60020 from '@/assets/fonts/Inter-600-20.ttf';
 
-// Safely initialize Firebase messaging background handler
-try {
-  messaging().setBackgroundMessageHandler(async remoteMessage => {
-    console.log('Message handled in the background!', remoteMessage);
-  });
-} catch (error) {
-  console.error('[Navigation] Failed to set background message handler:', error);
-  // Don't crash if Firebase messaging fails to initialize
-}
-
 export const AppNavigationContainer = () => {
   const [fontsLoaded] = useFonts({
     'Inter-400-20': Inter40020,
@@ -45,6 +35,18 @@ export const AppNavigationContainer = () => {
   });
 
   const routeNameRef = useRef<string | undefined>(undefined);
+
+  // Initialize Firebase messaging background handler after component mounts (runtime is ready)
+  React.useEffect(() => {
+    try {
+      messaging().setBackgroundMessageHandler(async remoteMessage => {
+        console.log('Message handled in the background!', remoteMessage);
+      });
+    } catch (error) {
+      console.error('[Navigation] Failed to set background message handler:', error);
+      // Don't crash if Firebase messaging fails to initialize
+    }
+  }, []);
 
   const installationUrl = useAppSelector(selectInstallationUrl);
   const locale = useAppSelector(selectLocale);
