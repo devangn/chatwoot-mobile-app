@@ -4,6 +4,7 @@
  */
 
 import AudioRecorderPlayer, { PlayBackType } from 'react-native-audio-recorder-player';
+import { createAudioRecorderPlayer, getAudioRecorderPlayer } from './AudioRecorderPlayerManager';
 
 export type Callback = (args: { status: AudioStatus; data?: PlayBackType }) => void;
 
@@ -17,48 +18,29 @@ export enum AudioStatus {
   STOPPED = 'STOPPED',
 }
 
-let audioRecorderPlayer: AudioRecorderPlayer | undefined;
+// Use shared player instance from AudioRecorderPlayerManager
+// This ensures consistent initialization and prevents conflicts
 let currentPath: Path;
 let currentCallback: Callback = () => {};
 let currentPosition = 0;
-let isCreatingPlayer = false;
-
-function createAudioPlayer(): AudioRecorderPlayer | null {
-  if (audioRecorderPlayer) {
-    return audioRecorderPlayer;
-  }
-  if (isCreatingPlayer) {
-    return null;
-  }
-  try {
-    isCreatingPlayer = true;
-    audioRecorderPlayer = new AudioRecorderPlayer();
-    isCreatingPlayer = false;
-    return audioRecorderPlayer;
-  } catch (error) {
-    console.error('[AudioManager] Failed to create AudioRecorderPlayer:', error);
-    isCreatingPlayer = false;
-    return null;
-  }
-}
 
 export const startPlayer = async (path: string, callback: Callback) => {
   if (currentPath === undefined) {
     currentPath = path;
     currentCallback = callback;
   } else if (currentPath !== path) {
-    if (audioRecorderPlayer !== undefined) {
+    const player = getAudioRecorderPlayer();
+    if (player !== undefined) {
       await stopPlayer();
     }
     currentPath = path;
     currentCallback = callback;
   }
 
-  if (audioRecorderPlayer === undefined) {
-    const player = createAudioPlayer();
-    if (!player) {
-      throw new Error('Failed to initialize audio player. Please try again.');
-    }
+  // Wait for player to be ready (with retry logic)
+  const audioRecorderPlayer = await createAudioRecorderPlayer();
+  if (!audioRecorderPlayer) {
+    throw new Error('Failed to initialize audio player. Please try again.');
   }
 
   const shouldBeResumed = currentPath === path && currentPosition > 0;
@@ -94,24 +76,37 @@ export const startPlayer = async (path: string, callback: Callback) => {
 };
 
 export const pausePlayer = async () => {
-  await audioRecorderPlayer?.pausePlayer();
-  currentCallback({ status: AudioStatus.PAUSED });
+  const player = getAudioRecorderPlayer();
+  if (player) {
+    await player.pausePlayer();
+    currentCallback({ status: AudioStatus.PAUSED });
+  }
 };
 
 export const resumePlayer = async () => {
-  await audioRecorderPlayer?.resumePlayer();
-  currentCallback({ status: AudioStatus.RESUMED });
+  const player = getAudioRecorderPlayer();
+  if (player) {
+    await player.resumePlayer();
+    currentCallback({ status: AudioStatus.RESUMED });
+  }
 };
 
 export const seekTo = async (position: number) => {
-  await audioRecorderPlayer?.seekToPlayer(position);
-  currentCallback({ status: AudioStatus.PLAYING });
+  const player = getAudioRecorderPlayer();
+  if (player) {
+    await player.seekToPlayer(position);
+    currentCallback({ status: AudioStatus.PLAYING });
+  }
 };
 
 export const stopPlayer = async () => {
-  await audioRecorderPlayer?.stopPlayer();
-  audioRecorderPlayer?.removePlayBackListener();
-  currentPosition = 0;
-  currentCallback({ status: AudioStatus.STOPPED });
-  audioRecorderPlayer = undefined;
+  const player = getAudioRecorderPlayer();
+  if (player) {
+    await player.stopPlayer();
+    player.removePlayBackListener();
+    currentPosition = 0;
+    currentCallback({ status: AudioStatus.STOPPED });
+    // Note: We don't clear the shared player instance here
+    // It can be reused for other operations
+  }
 };

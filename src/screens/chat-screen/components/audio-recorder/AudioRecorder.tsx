@@ -4,6 +4,7 @@ import AudioRecorderPlayer, {
   RecordBackType,
   AVEncodingOption,
 } from 'react-native-audio-recorder-player';
+import { createAudioRecorderPlayer, getAudioRecorderPlayer } from './AudioRecorderPlayerManager';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { isUndefined } from 'lodash';
 import * as Sentry from '@sentry/react-native';
@@ -25,100 +26,8 @@ import { convertAacToWav } from '@/utils/audioConverter';
 
 const RecorderSegmentWidth = Dimensions.get('screen').width - 8 - 80 - 12;
 
-// Lazy-load ARPlayer instance to avoid "runtime not ready" errors
-// Only create it when user actually tries to record (not on component mount)
-let arPlayerInstance: AudioRecorderPlayer | null = null;
-let creationPromise: Promise<AudioRecorderPlayer | null> | null = null;
-let playerCreationFailed = false;
-const MAX_RETRIES = 20; // Increased retries
-const INITIAL_DELAY = 100; // Initial delay before first attempt
-let retryCount = 0;
-
-function getARPlayer(): AudioRecorderPlayer | null {
-  // If already created, return it
-  if (arPlayerInstance) {
-    return arPlayerInstance;
-  }
-  // DO NOT try to create here - only return existing instance
-  return null;
-}
-
-function createARPlayer(): Promise<AudioRecorderPlayer | null> {
-  // If already created, return it immediately
-  if (arPlayerInstance) {
-    return Promise.resolve(arPlayerInstance);
-  }
-  
-  // If creation previously failed, don't retry
-  if (playerCreationFailed) {
-    console.warn('[AudioRecorder] Player creation previously failed, not retrying');
-    return Promise.resolve(null);
-  }
-  
-  // If currently creating, return the existing promise (all callers wait on same attempt)
-  if (creationPromise) {
-    return creationPromise;
-  }
-  
-  // Check retry count
-  if (retryCount >= MAX_RETRIES) {
-    console.error('[AudioRecorder] Max retries reached, giving up');
-    playerCreationFailed = true;
-    return Promise.resolve(null);
-  }
-  
-  // Start a new creation attempt
-  retryCount++;
-  const currentRetry = retryCount;
-  
-  creationPromise = new Promise((resolve) => {
-    // Add initial delay for first attempt to let runtime initialize
-    const initialDelay = currentRetry === 1 ? INITIAL_DELAY : 0;
-    
-    setTimeout(() => {
-      // Try to create the instance - wrap in try-catch
-      // Even accessing AudioRecorderPlayer can throw if module isn't ready
-      try {
-        arPlayerInstance = new AudioRecorderPlayer();
-        retryCount = 0; // Reset on success
-        creationPromise = null; // Clear promise so next call can create new instance if needed
-        console.log('[AudioRecorder] AudioRecorderPlayer created successfully');
-        resolve(arPlayerInstance);
-        return;
-      } catch (error) {
-        // Log the actual error for debugging
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const errorStack = error instanceof Error ? error.stack : undefined;
-        console.log(`[AudioRecorder] Constructor not ready (attempt ${currentRetry}/${MAX_RETRIES}): ${errorMessage}`);
-        if (errorStack && currentRetry === 1) {
-          console.log(`[AudioRecorder] First attempt error stack: ${errorStack}`);
-        }
-        
-        // If we've exhausted retries, mark as failed
-        if (currentRetry >= MAX_RETRIES) {
-          playerCreationFailed = true;
-          creationPromise = null;
-          console.error(`[AudioRecorder] Max retries reached, marking as failed. Last error: ${errorMessage}`);
-          resolve(null);
-          return;
-        }
-        
-        // Use exponential backoff for retries
-        // First retry after initial delay: 200ms, then 300ms, 450ms, 675ms, etc. (max 3 seconds)
-        const delay = Math.min(200 * Math.pow(1.5, currentRetry - 1), 3000);
-        
-        setTimeout(() => {
-          // Clear the promise so we can retry
-          creationPromise = null;
-          // Retry creation
-          createARPlayer().then(resolve);
-        }, delay);
-      }
-    }, initialDelay);
-  });
-  
-  return creationPromise;
-}
+// Use shared AudioRecorderPlayer manager for consistent initialization
+// This ensures both recording and playback use the same instance and retry logic
 
 /**
  * ! Handling Audio Server Side
@@ -171,10 +80,8 @@ export const AudioRecorder = ({
   const [recorderData, setRecorderData] = useState<RecordBackType | undefined>(undefined);
 
   useEffect(() => {
-    // Reset retry state on mount to allow fresh attempts
-    retryCount = 0;
-    playerCreationFailed = false;
-    creationPromise = null;
+    // Component mount - no need to reset shared state here
+    // The shared manager handles state across all components
 
     // Request permissions and start recording when component mounts
     const startRecording = async () => {
@@ -199,12 +106,9 @@ export const AudioRecorder = ({
 
         // Create player asynchronously - tries immediately, retries if needed
         // Give it more time - the module might need extra time to initialize in New Architecture
-        const player = await createARPlayer();
+        const player = await createAudioRecorderPlayer();
         if (!player) {
           console.error('[AudioRecorder] Failed to initialize player for recording after all retries');
-          // Reset the failed flag so user can try again
-          playerCreationFailed = false;
-          retryCount = 0;
           Alert.alert(
             'Error',
             'Audio recorder is not ready yet. Please wait a moment and try again.',
@@ -252,15 +156,10 @@ export const AudioRecorder = ({
 
     startRecording();
 
-    // Cleanup on unmount
+    // Cleanup on unmount - no need to reset shared state
+    // The shared manager maintains the player instance for reuse
     return () => {
-      // Reset retry count and failed flag when component unmounts
-      // This allows retry on next mount
-      retryCount = 0;
-      playerCreationFailed = false;
-      creationPromise = null;
-      // Don't clear arPlayerInstance here - it can be reused if still valid
-      // Only clear it if there was an error or on app restart
+      // Component-specific cleanup if needed
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -268,7 +167,7 @@ export const AudioRecorder = ({
   const deleteRecorder = async () => {
     try {
       // Wait for player to be ready (it might still be initializing)
-      const player = await createARPlayer();
+      const player = await createAudioRecorderPlayer();
       if (player) {
         try {
           await player.stopRecorder();
@@ -330,7 +229,7 @@ export const AudioRecorder = ({
     setIsSending(true);
     try {
       // Wait for player to be ready (it might still be initializing)
-      const player = await createARPlayer();
+      const player = await createAudioRecorderPlayer();
       if (!player) {
         console.error('[AudioRecorder] Player not initialized, cannot stop recording');
         Alert.alert(
