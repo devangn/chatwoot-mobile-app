@@ -10,9 +10,29 @@ import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 let sharedPlayerInstance: AudioRecorderPlayer | null = null;
 let creationPromise: Promise<AudioRecorderPlayer | null> | null = null;
 let playerCreationFailed = false;
-const MAX_RETRIES = 20;
-const INITIAL_DELAY = 100;
+const MAX_RETRIES = 30; // Increased retries
+const INITIAL_DELAY = 500; // Increased initial delay to let runtime fully initialize
 let retryCount = 0;
+
+/**
+ * Check if AudioRecorderPlayer module is available and ready
+ */
+function isModuleAvailable(): boolean {
+  try {
+    // Check if AudioRecorderPlayer exists and is a constructor
+    if (!AudioRecorderPlayer) {
+      return false;
+    }
+    // Try to check if it's callable (without actually calling it)
+    // In New Architecture, the constructor might not be available until runtime is ready
+    if (typeof AudioRecorderPlayer !== 'function' && typeof AudioRecorderPlayer !== 'object') {
+      return false;
+    }
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
 
 /**
  * Get existing player instance (synchronous, returns null if not ready)
@@ -58,8 +78,37 @@ export function createAudioRecorderPlayer(): Promise<AudioRecorderPlayer | null>
     const initialDelay = currentRetry === 1 ? INITIAL_DELAY : 0;
 
     setTimeout(() => {
-      // Try to create the instance - wrap in try-catch
-      // Even accessing AudioRecorderPlayer can throw if module isn't ready
+      // First check if module is available
+      if (!isModuleAvailable()) {
+        console.log(
+          `[AudioRecorderPlayerManager] Module not available yet (attempt ${currentRetry}/${MAX_RETRIES})`,
+        );
+
+        // If we've exhausted retries, mark as failed
+        if (currentRetry >= MAX_RETRIES) {
+          playerCreationFailed = true;
+          creationPromise = null;
+          console.error(
+            `[AudioRecorderPlayerManager] Max retries reached, module never became available`,
+          );
+          resolve(null);
+          return;
+        }
+
+        // Use exponential backoff for retries
+        // First retry after initial delay: 300ms, then 450ms, 675ms, etc. (max 3 seconds)
+        const delay = Math.min(300 * Math.pow(1.5, currentRetry - 1), 3000);
+
+        setTimeout(() => {
+          // Clear the promise so we can retry
+          creationPromise = null;
+          // Retry creation
+          createAudioRecorderPlayer().then(resolve);
+        }, delay);
+        return;
+      }
+
+      // Module is available, try to create the instance
       try {
         sharedPlayerInstance = new AudioRecorderPlayer();
         retryCount = 0; // Reset on success
@@ -72,7 +121,7 @@ export function createAudioRecorderPlayer(): Promise<AudioRecorderPlayer | null>
         const errorMessage = error instanceof Error ? error.message : String(error);
         const errorStack = error instanceof Error ? error.stack : undefined;
         console.log(
-          `[AudioRecorderPlayerManager] Constructor not ready (attempt ${currentRetry}/${MAX_RETRIES}): ${errorMessage}`,
+          `[AudioRecorderPlayerManager] Constructor failed (attempt ${currentRetry}/${MAX_RETRIES}): ${errorMessage}`,
         );
         if (errorStack && currentRetry === 1) {
           console.log(`[AudioRecorderPlayerManager] First attempt error stack: ${errorStack}`);
@@ -90,8 +139,8 @@ export function createAudioRecorderPlayer(): Promise<AudioRecorderPlayer | null>
         }
 
         // Use exponential backoff for retries
-        // First retry after initial delay: 200ms, then 300ms, 450ms, 675ms, etc. (max 3 seconds)
-        const delay = Math.min(200 * Math.pow(1.5, currentRetry - 1), 3000);
+        // First retry after initial delay: 300ms, then 450ms, 675ms, etc. (max 3 seconds)
+        const delay = Math.min(300 * Math.pow(1.5, currentRetry - 1), 3000);
 
         setTimeout(() => {
           // Clear the promise so we can retry

@@ -4,7 +4,11 @@ import AudioRecorderPlayer, {
   RecordBackType,
   AVEncodingOption,
 } from 'react-native-audio-recorder-player';
-import { createAudioRecorderPlayer, getAudioRecorderPlayer } from './AudioRecorderPlayerManager';
+import {
+  createAudioRecorderPlayer,
+  getAudioRecorderPlayer,
+  resetAudioRecorderPlayer,
+} from './AudioRecorderPlayerManager';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { isUndefined } from 'lodash';
 import * as Sentry from '@sentry/react-native';
@@ -109,11 +113,18 @@ export const AudioRecorder = ({
         const player = await createAudioRecorderPlayer();
         if (!player) {
           console.error('[AudioRecorder] Failed to initialize player for recording after all retries');
+          // Reset failed state so user can try again
+          resetAudioRecorderPlayer();
           Alert.alert(
             'Error',
-            'Audio recorder is not ready yet. Please wait a moment and try again.',
+            'Audio recorder is not ready. Please close this screen and try again in a moment.',
+            [
+              {
+                text: 'OK',
+                onPress: () => setIsVoiceRecorderOpen(false),
+              },
+            ],
           );
-          setIsVoiceRecorderOpen(false);
           return;
         }
 
