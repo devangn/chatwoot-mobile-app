@@ -38,6 +38,7 @@ ios/
 android/
 
 #google-services.json
-GoogleService-Info.plist
+# Allow placeholder GoogleService-Info.plist (actual config files should still be ignored)
+# GoogleService-Info.plist
 .env
 .env.local

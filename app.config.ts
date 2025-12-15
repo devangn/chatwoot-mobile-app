@@ -30,10 +30,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         ITSAppUsesNonExemptEncryption: false,
       },
       // Please use the relative path to the GoogleService-Info.plist file
-      // Only set if environment variable is provided (optional for Android-only builds)
-      ...(process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE && {
-        googleServicesFile: process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE,
-      }),
+      // Provide placeholder if not set (for Android-only builds)
+      // The plugin will skip if file doesn't exist
+      googleServicesFile: process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE || './GoogleService-Info.plist',
       entitlements: { 'aps-environment': 'production' },
       associatedDomains: ['applinks:cw3.letthemconnect.com'],
     },
