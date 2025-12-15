@@ -3,7 +3,6 @@ import { apiService } from '@/services/APIService';
 import { conversation, conversationListResponse } from './conversationMockData';
 import { transformConversation, transformConversationListMeta } from '@/utils/camelCaseKeys';
 
-jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 

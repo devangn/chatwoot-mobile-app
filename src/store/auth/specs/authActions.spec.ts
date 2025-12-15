@@ -9,7 +9,6 @@ jest.mock('@/store/auth/authService', () => ({
   },
 }));
 
-jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 

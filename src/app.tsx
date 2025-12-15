@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { Provider } from 'react-redux';
 import { Alert, BackHandler, Platform } from 'react-native';
 import { PersistGate } from 'redux-persist/integration/react';
-import * as Sentry from '@sentry/react-native';
 import { store, persistor } from './store';
 import { AppNavigator } from '@/navigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -31,38 +30,6 @@ const LetThemConnect = () => {
   }, []);
 
   useEffect(() => {
-    // Initialize Sentry after component mounts (runtime is ready)
-    if (!__DEV__) {
-      try {
-        const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
-        if (sentryDsn) {
-          Sentry.init({
-            dsn: sentryDsn,
-            tracesSampleRate: 1.0,
-            attachScreenshot: true,
-            enableAutoSessionTracking: true,
-            beforeSend(event) {
-              // Filter out known non-critical errors
-              if (event.exception) {
-                const errorMessage = event.exception.values?.[0]?.value || '';
-                // Don't send device info initialization errors as they're handled gracefully
-                if (errorMessage.includes('DeviceInfo') || errorMessage.includes('InstallReferrer')) {
-                  return null;
-                }
-              }
-              return event;
-            },
-          });
-          console.log('[App] Sentry initialized successfully');
-        } else {
-          console.warn('[App] Sentry DSN not configured, skipping initialization');
-        }
-      } catch (error) {
-        console.error('[App] Failed to initialize Sentry:', error);
-        // Don't crash the app if Sentry fails to initialize
-      }
-    }
-
     // Initialize device info safely on app start
     initializeDeviceInfo().catch(error => {
       console.error('[App] Failed to initialize device info:', error);

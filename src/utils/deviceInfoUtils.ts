@@ -4,7 +4,6 @@
  */
 
 import { Platform } from 'react-native';
-import * as Sentry from '@sentry/react-native';
 
 // Cache for device info to avoid repeated calls
 let deviceInfoCache: {
@@ -41,9 +40,7 @@ async function safeDeviceInfoCall<T>(
     console.error(`[DeviceInfo] Error in ${errorContext}:`, error);
     isDeviceInfoAvailable = false;
 
-    // Report to Sentry in production
     if (!__DEV__) {
-      Sentry.captureException(error, {
         tags: { component: 'DeviceInfo', context: errorContext },
       });
     }
@@ -75,7 +72,6 @@ export async function initializeDeviceInfo(): Promise<void> {
     console.error('[DeviceInfo] Failed to initialize:', error);
     isDeviceInfoAvailable = false;
     if (!__DEV__) {
-      Sentry.captureException(error, {
         tags: { component: 'DeviceInfo', context: 'initialization' },
       });
     }

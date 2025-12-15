@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 import Clipboard from '@react-native-clipboard/clipboard';
-import * as Sentry from '@sentry/react-native';
 
 import { CaretRight } from '@/svg-icons';
 import { tailwind } from '@/theme';
@@ -25,7 +24,6 @@ const AttributeItem = (props: AttributeItemProps) => {
         Clipboard.setString(formattedValue);
         showToast({ message: `${listItem.title} copied to clipboard` });
       } catch (error) {
-        Sentry.captureException(error);
       }
     }
   };

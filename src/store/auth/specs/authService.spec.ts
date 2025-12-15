@@ -1,7 +1,6 @@
 import { AuthService } from '@/store/auth/authService';
 import { apiService } from '@/services/APIService';
 import { mockUser } from './authMockData';
-jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 

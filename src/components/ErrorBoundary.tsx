@@ -4,7 +4,6 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import * as Sentry from '@sentry/react-native';
 import { tailwind } from '@/theme';
 import { Button } from '@/components-next';
 
@@ -43,17 +42,6 @@ export class ErrorBoundary extends Component<Props, State> {
       error,
       errorInfo,
     });
-
-    // Report to Sentry in production
-    if (!__DEV__) {
-      Sentry.captureException(error, {
-        contexts: {
-          react: {
-            componentStack: errorInfo.componentStack,
-          },
-        },
-      });
-    }
   }
 
   handleReset = () => {

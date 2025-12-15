@@ -2,7 +2,6 @@ import { apiService } from '@/services/APIService';
 import { AssignableAgentService } from '../assignableAgentService';
 import { mockInboxAgentsResponse } from './assignableAgentMockData';
 
-jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 
