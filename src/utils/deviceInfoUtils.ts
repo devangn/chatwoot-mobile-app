@@ -66,10 +66,6 @@ export async function initializeDeviceInfo(): Promise<void> {
   } catch (error) {
     console.error('[DeviceInfo] Failed to initialize:', error);
     isDeviceInfoAvailable = false;
-    if (!__DEV__) {
-        tags: { component: 'DeviceInfo', context: 'initialization' },
-      });
-    }
   }
 }
 
