@@ -40,11 +40,6 @@ async function safeDeviceInfoCall<T>(
     console.error(`[DeviceInfo] Error in ${errorContext}:`, error);
     isDeviceInfoAvailable = false;
 
-    if (!__DEV__) {
-        tags: { component: 'DeviceInfo', context: errorContext },
-      });
-    }
-
     return fallback;
   }
 }
