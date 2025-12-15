@@ -121,7 +121,7 @@ const SettingsScreen = () => {
 
   const isChatwootCloud = useAppSelector(selectIsChatwootCloud);
 
-  const appInstance = appName; // Removed cloud/self-hosted distinction
+  const appInstance = 'Let Them Connect'; // Whitelabeled app name
 
   const accounts = useSelector(selectAccounts) || [];
 
@@ -223,28 +223,12 @@ const SettingsScreen = () => {
   const supportList: GenericListType[] = [
     {
       hasChevron: true,
-      title: 'Watch Tutorials',
-      icon: <SwitchIcon />,
-      subtitle: '',
-      subtitleType: 'light',
-      onPressListItem: () => {
-        const youtubeUrl = process.env.EXPO_PUBLIC_YOUTUBE_CHANNEL_URL;
-        if (youtubeUrl) {
-          WebBrowser.openBrowserAsync(youtubeUrl);
-        }
-      },
-    },
-    {
-      hasChevron: true,
-      title: 'Get Support',
+      title: 'Chat with us',
       icon: <ChatwootIcon />,
       subtitle: '',
       subtitleType: 'light',
       onPressListItem: () => {
-        const supportUrl = process.env.EXPO_PUBLIC_SUPPORT_URL;
-        if (supportUrl) {
-          WebBrowser.openBrowserAsync(supportUrl);
-        }
+        WebBrowser.openBrowserAsync('https://letthemconnect.com');
       },
     },
   ];
