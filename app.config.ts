@@ -40,7 +40,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       package: 'com.letthemconnect.app',
       permissions: ['android.permission.CAMERA', 'android.permission.RECORD_AUDIO'],
       // Please use the relative path to the google-services.json file
-      googleServicesFile: "./google-services.json",
+      ...(process.env.EXPO_PUBLIC_ANDROID_GOOGLE_SERVICES_FILE && {
+        googleServicesFile: process.env.EXPO_PUBLIC_ANDROID_GOOGLE_SERVICES_FILE,
+      }),
       intentFilters: [
         {
           action: 'VIEW',
