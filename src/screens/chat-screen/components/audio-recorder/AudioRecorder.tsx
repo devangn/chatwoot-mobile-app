@@ -4,11 +4,6 @@ import AudioRecorderPlayer, {
   RecordBackType,
   AVEncodingOption,
 } from 'react-native-audio-recorder-player';
-import {
-  createAudioRecorderPlayer,
-  getAudioRecorderPlayer,
-  resetAudioRecorderPlayer,
-} from './AudioRecorderPlayerManager';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { isUndefined } from 'lodash';
 import * as Sentry from '@sentry/react-native';
@@ -30,8 +25,8 @@ import { convertAacToWav } from '@/utils/audioConverter';
 
 const RecorderSegmentWidth = Dimensions.get('screen').width - 8 - 80 - 12;
 
-// Use shared AudioRecorderPlayer manager for consistent initialization
-// This ensures both recording and playback use the same instance and retry logic
+// Create AudioRecorderPlayer instance at module level (old architecture - no retry needed)
+const arPlayer = new AudioRecorderPlayer();
 
 /**
  * ! Handling Audio Server Side
@@ -108,28 +103,8 @@ export const AudioRecorder = ({
           }
         }
 
-        // Create player asynchronously - tries immediately, retries if needed
-        // Give it more time - the module might need extra time to initialize in New Architecture
-        const player = await createAudioRecorderPlayer();
-        if (!player) {
-          console.error('[AudioRecorder] Failed to initialize player for recording after all retries');
-          // Reset failed state so user can try again
-          resetAudioRecorderPlayer();
-          Alert.alert(
-            'Error',
-            'Audio recorder is not ready. Please close this screen and try again in a moment.',
-            [
-              {
-                text: 'OK',
-                onPress: () => setIsVoiceRecorderOpen(false),
-              },
-            ],
-          );
-          return;
-        }
-
         // Add listener for recording updates
-        player.addRecordBackListener((recordingMeta: RecordBackType) => {
+        arPlayer.addRecordBackListener((recordingMeta: RecordBackType) => {
           setRecorderData(recordingMeta);
         });
 
@@ -141,7 +116,7 @@ export const AudioRecorder = ({
         });
 
         // Start recording
-        await player.startRecorder(path, {
+        await arPlayer.startRecorder(path, {
           AVFormatIDKeyIOS: AVEncodingOption.aac,
           AVNumberOfChannelsKeyIOS: 2,
           AVSampleRateKeyIOS: 44100,
@@ -177,17 +152,9 @@ export const AudioRecorder = ({
 
   const deleteRecorder = async () => {
     try {
-      // Wait for player to be ready (it might still be initializing)
-      const player = await createAudioRecorderPlayer();
-      if (player) {
-        try {
-          await player.stopRecorder();
-        } catch (error) {
-          console.error('[AudioRecorder] Error stopping recorder:', error);
-        }
-      }
+      await arPlayer.stopRecorder();
     } catch (error) {
-      console.error('[AudioRecorder] Error in deleteRecorder:', error);
+      console.error('[AudioRecorder] Error stopping recorder:', error);
     } finally {
       // Reset state
       setIsAudioRecording(false);
@@ -239,20 +206,8 @@ export const AudioRecorder = ({
     if (isSending) return;
     setIsSending(true);
     try {
-      // Wait for player to be ready (it might still be initializing)
-      const player = await createAudioRecorderPlayer();
-      if (!player) {
-        console.error('[AudioRecorder] Player not initialized, cannot stop recording');
-        Alert.alert(
-          'Error',
-          'Audio recorder is not ready. Please close and try recording again.',
-        );
-        setIsSending(false);
-        return;
-      }
-
       // Stop recording
-      const value = await player.stopRecorder();
+      const value = await arPlayer.stopRecorder();
       
       // Reset recording state
       setIsAudioRecording(false);
