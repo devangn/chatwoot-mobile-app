@@ -29,8 +29,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         UIBackgroundModes: ['fetch', 'remote-notification'],
         ITSAppUsesNonExemptEncryption: false,
       },
-      // Please use the relative path to the google-services.json file
-      googleServicesFile: process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE,
+      // Please use the relative path to the GoogleService-Info.plist file
+      // Only set if environment variable is provided (optional for Android-only builds)
+      ...(process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE && {
+        googleServicesFile: process.env.EXPO_PUBLIC_IOS_GOOGLE_SERVICES_FILE,
+      }),
       entitlements: { 'aps-environment': 'production' },
       associatedDomains: ['applinks:cw3.letthemconnect.com'],
     },
