@@ -32,6 +32,7 @@ import {
 } from '@/store/settings/settingsSelectors';
 import { selectIsLoggingIn } from '@/store/auth/authSelectors';
 import { setLocale } from '@/store/settings/settingsSlice';
+import { settingsActions } from '@/store/settings/settingsActions';
 import { useRefsContext } from '@/context/RefsContext';
 import { SsoUtils } from '@/utils/ssoUtils';
 
@@ -65,7 +66,8 @@ const LoginScreen = () => {
   const dispatch = useAppDispatch();
   const isLoggingIn = useAppSelector(selectIsLoggingIn);
 
-  const installationUrl = useAppSelector(selectInstallationUrl);
+  // Hard code URL to cw3.letthemconnect.com
+  const installationUrl = 'https://cw3.letthemconnect.com';
   const baseUrl = useAppSelector(selectBaseUrl);
   const activeLocale = useAppSelector(selectLocale);
 
@@ -78,10 +80,10 @@ const LoginScreen = () => {
 
   useEffect(() => {
     dispatch(resetAuth());
-    if (!installationUrl) {
-      navigation.navigate('ConfigureURL' as never);
-    }
-  }, [installationUrl, navigation, dispatch]);
+    // Set hardcoded installation URL in Redux store
+    const hardcodedUrl = 'https://cw3.letthemconnect.com';
+    dispatch(settingsActions.setInstallationUrl(hardcodedUrl));
+  }, [navigation, dispatch]);
 
   const onSubmit = async (data: FormData) => {
     const { email, password } = data;
@@ -103,9 +105,8 @@ const LoginScreen = () => {
     }
   };
 
-  // TODO: Change this condition based on EE check
-  // Show SSO login button only if installation URL contains app.chatwoot.com
-  const showSsoLogin = installationUrl.includes('app.chatwoot.com');
+  // Hide SSO login - always false
+  const showSsoLogin = false;
 
   const openResetPassword = () => {
     navigation.navigate('ResetPassword' as never);
@@ -153,6 +154,7 @@ const LoginScreen = () => {
             source={require('@/assets/images/logo.png')}
             style={tailwind.style('w-10 h-10')}
             resizeMode="contain"
+            // Note: Replace the logo file at src/assets/images/logo.png with your app logo
           />
           <View style={tailwind.style('pt-6 gap-4')}>
             <Animated.Text style={tailwind.style('text-2xl text-gray-950 font-inter-semibold-20')}>
@@ -265,11 +267,12 @@ const LoginScreen = () => {
             name="password"
           />
 
-
-          <Button
-            text={isLoggingIn ? i18n.t('LOGIN.LOGIN_LOADING') : i18n.t('LOGIN.LOGIN')}
-            handlePress={handleSubmit(onSubmit)}
-          />
+          <View style={tailwind.style('mt-6')}>
+            <Button
+              text={isLoggingIn ? i18n.t('LOGIN.LOGIN_LOADING') : i18n.t('LOGIN.LOGIN')}
+              handlePress={handleSubmit(onSubmit)}
+            />
+          </View>
 
         </Animated.ScrollView>
       </View>
