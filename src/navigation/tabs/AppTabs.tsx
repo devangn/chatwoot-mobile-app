@@ -3,7 +3,6 @@ import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/b
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { authActions } from '@/store/auth/authActions';
-import * as Sentry from '@sentry/react-native';
 
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import {
@@ -92,7 +91,6 @@ const Tabs = () => {
     dispatch(dashboardAppActions.index());
     dispatch(customAttributeActions.index());
     initAnalytics();
-    initSentry();
     initPushNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -108,17 +106,6 @@ const Tabs = () => {
     clearAllDeliveredNotifications();
   }, []);
 
-  const initSentry = useCallback(async () => {
-    Sentry.setUser({
-      id: user?.id,
-      email: user?.email,
-      account_id: user?.account_id,
-      name: user?.name,
-      role: user?.role,
-      installation_url: installationUrl,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const initActionCable = useCallback(async () => {
     if (pubSubToken && webSocketUrl && accountId && userId) {
