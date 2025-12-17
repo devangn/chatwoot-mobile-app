@@ -61,16 +61,6 @@ export const MessagesList = ({
     FlashList<Message | { date: string }>
   >;
 
-  // Create a unique key based on messages to force FlashList to update when messages change
-  // This ensures new messages appear immediately when they arrive via ActionCable
-  const extraData = React.useMemo(() => {
-    if (!messages || messages.length === 0) return 'empty';
-    // Use the last message ID and total count to create a unique key
-    const lastMessage = messages[messages.length - 1];
-    const lastId = 'id' in lastMessage ? lastMessage.id : 'date';
-    return `${messages.length}-${lastId}`;
-  }, [messages]);
-
   const handleRender = ({ item, index }: { item: Message | { date: string }; index: number }) => {
     if ('date' in item) {
       return <DateSection item={item} />;
@@ -116,7 +106,6 @@ export const MessagesList = ({
         onEndReached={onEndReached}
         onEndReachedThreshold={0.1}
         data={messages}
-        extraData={extraData}
         contentContainerStyle={tailwind.style('px-3')}
         keyboardShouldPersistTaps="handled"
         keyExtractor={(item: { date: string } | Message) => {
