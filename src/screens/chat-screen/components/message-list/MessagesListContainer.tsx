@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { useChatWindowContext } from '@/context';
 import { AppState, Platform } from 'react-native';
@@ -148,20 +148,29 @@ export const MessagesListContainer = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const groupedMessages = getGroupedMessages(messages);
+  // Memoize grouped messages to ensure FlashList detects changes when new messages arrive via ActionCable
+  const groupedMessages = useMemo(() => getGroupedMessages(messages), [messages]);
 
-  const allMessages = flatMap(groupedMessages, section => [
-    ...section.data,
-    { date: section.date },
-  ]);
+  const allMessages = useMemo(
+    () =>
+      flatMap(groupedMessages, section => [
+        ...section.data,
+        { date: section.date },
+      ]),
+    [groupedMessages],
+  );
 
-  const messagesWithGrouping = allMessages.map((message, index) => {
-    return {
-      ...message,
-      groupWithNext: shouldGroupWithNext(index, allMessages as MessageOrDate[]),
-      groupWithPrevious: shouldGroupWithNext(index - 1, allMessages as MessageOrDate[]),
-    };
-  });
+  const messagesWithGrouping = useMemo(
+    () =>
+      allMessages.map((message, index) => {
+        return {
+          ...message,
+          groupWithNext: shouldGroupWithNext(index, allMessages as MessageOrDate[]),
+          groupWithPrevious: shouldGroupWithNext(index - 1, allMessages as MessageOrDate[]),
+        };
+      }),
+    [allMessages],
+  );
 
   const { inboxId } = conversation || {};
   const inbox = useAppSelector(state => (inboxId ? selectInboxById(state, inboxId) : undefined));
