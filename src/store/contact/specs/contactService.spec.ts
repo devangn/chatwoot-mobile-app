@@ -2,7 +2,6 @@ import { ContactService } from '../contactService';
 import { apiService } from '@/services/APIService';
 import { mockContactLabelsResponse } from './contactMockData';
 
-jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 

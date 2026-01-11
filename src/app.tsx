@@ -1,20 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Provider } from 'react-redux';
-import { Alert, BackHandler } from 'react-native';
+import { Alert, BackHandler, Platform } from 'react-native';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './store';
 import { AppNavigator } from '@/navigation';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { initializeDeviceInfo } from '@/utils/deviceInfoUtils';
 
 import i18n from '@/i18n';
 
 const LetThemConnect = () => {
-  useEffect(() => {
-    BackHandler.addEventListener('hardwareBackPress', handleBackButtonClick);
-    return () => {
-      BackHandler.removeEventListener('hardwareBackPress', handleBackButtonClick);
-    };
-  }, []);
-  const handleBackButtonClick = () => {
+  const backHandlerRef = useRef<any>(null);
+
+  const handleBackButtonClick = useCallback(() => {
     Alert.alert(
       i18n.t('EXIT.TITLE'),
       i18n.t('EXIT.SUBTITLE'),
@@ -29,14 +27,33 @@ const LetThemConnect = () => {
       { cancelable: false },
     );
     return true;
-  };
+  }, []);
+
+  useEffect(() => {
+    // Initialize device info safely on app start
+    initializeDeviceInfo().catch(error => {
+      console.error('[App] Failed to initialize device info:', error);
+    });
+
+    // Use modern BackHandler API (React Native 0.65+)
+    if (Platform.OS === 'android') {
+      backHandlerRef.current = BackHandler.addEventListener('hardwareBackPress', handleBackButtonClick);
+      return () => {
+        if (backHandlerRef.current) {
+          backHandlerRef.current.remove();
+        }
+      };
+    }
+  }, [handleBackButtonClick]);
 
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <AppNavigator />
-      </PersistGate>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <AppNavigator />
+        </PersistGate>
+      </Provider>
+    </ErrorBoundary>
   );
 };
 

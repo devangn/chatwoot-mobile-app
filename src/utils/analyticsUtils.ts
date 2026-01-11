@@ -94,4 +94,23 @@ class AnalyticsHelper {
   }
 }
 
-export default new AnalyticsHelper();
+// Lazy-load AnalyticsHelper instance to avoid "runtime not ready" errors
+// Only create it when actually needed (after runtime is ready)
+let analyticsInstance: AnalyticsHelper | null = null;
+function getAnalyticsHelper(): AnalyticsHelper {
+  if (!analyticsInstance) {
+    analyticsInstance = new AnalyticsHelper();
+  }
+  return analyticsInstance;
+}
+
+// Export a wrapper object that lazily creates the instance
+// This ensures the instance is only created when methods are first called
+export default {
+  identify(user: User): void {
+    getAnalyticsHelper().identify(user);
+  },
+  track(eventName: string, properties: AnalyticsProperties = {}): Promise<unknown> | void {
+    return getAnalyticsHelper().track(eventName, properties);
+  },
+};

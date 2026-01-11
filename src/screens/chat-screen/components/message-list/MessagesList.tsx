@@ -19,6 +19,8 @@ export type FlashListRenderProps = {
   index: number;
 };
 
+// Create AnimatedFlashlist at module level - this is safe because createAnimatedComponent
+// only creates a wrapper component and doesn't call native code until render
 const AnimatedFlashlist = Animated.createAnimatedComponent(FlashList<Message | { date: string }>);
 
 type DateSectionProps = { item: { date: string } };

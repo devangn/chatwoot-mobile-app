@@ -28,6 +28,8 @@ const SNAP_POINT = 96;
 const FRICTION = 10;
 const DRAG_TOSS = 0.05;
 
+// Create AnimatedPressable at module level - this is safe because createAnimatedComponent
+// only creates a wrapper component and doesn't call native code until render
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const rowCloseSpringConfig = { damping: 30, stiffness: 360, mass: 1 };

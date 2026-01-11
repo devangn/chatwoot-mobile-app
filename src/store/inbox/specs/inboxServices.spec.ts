@@ -3,7 +3,6 @@ import { InboxService } from '../inboxService';
 import { mockInboxesResponse } from './inboxMockData';
 import { apiService } from '@/services/APIService';
 
-jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 

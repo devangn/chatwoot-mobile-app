@@ -2,7 +2,6 @@ import { apiService } from '@/services/APIService';
 import { MacroService } from '../macroService';
 import { mockMacrosResponse } from './macroMockData';
 
-jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 

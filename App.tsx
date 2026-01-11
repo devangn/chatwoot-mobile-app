@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react-native';
-
 import Constants from 'expo-constants';
 import App from './src/app';
 
@@ -11,13 +9,8 @@ import './reanimatedConfig';
 
 const isStorybookEnabled = Constants.expoConfig?.extra?.eas?.storybookEnabled;
 
-if (!__DEV__) {
-  Sentry.init({
-    dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-    tracesSampleRate: 1.0,
-    attachScreenshot: true,
-  });
-}
+// Sentry initialization moved to src/app.tsx useEffect to avoid "runtime not ready" errors
+// Initializing at module load time causes crashes because JS runtime isn't ready yet
 
 if (__DEV__) {
   // eslint-disable-next-line
@@ -30,10 +23,8 @@ export default (() => {
     return require('./.storybook').default;
   }
 
-  if (!__DEV__) {
-    return Sentry.wrap(App);
-  }
-
+  // Don't use Sentry.wrap here as it can cause "runtime not ready" errors
+  // ErrorBoundary in src/app.tsx already handles errors and reports to Sentry
   console.log('Loading Development App');
   return App;
 })();

@@ -1,17 +1,8 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import * as Sentry from '@sentry/react-native';
 
 import messaging from '@react-native-firebase/messaging';
 import { Platform, PermissionsAndroid } from 'react-native';
-import {
-  getSystemName,
-  getManufacturer,
-  getModel,
-  getApiLevel,
-  getBrand,
-  getBuildNumber,
-  getUniqueId,
-} from 'react-native-device-info';
+import { DeviceInfoSafe } from '@/utils/deviceInfoUtils';
 
 import { SettingsService } from './settingsService';
 import type {
@@ -89,30 +80,52 @@ export const settingsActions = {
     'settings/saveDeviceDetails',
     async (_, { rejectWithValue }) => {
       try {
-        const permissionEnabled = await messaging().hasPermission();
-        const deviceId = await getUniqueId();
-        const devicePlatform = getSystemName();
-        const manufacturer = await getManufacturer();
-        const model = await getModel();
-        const apiLevel = await getApiLevel();
+        // Safely check messaging permissions
+        let permissionEnabled = -1;
+        try {
+          permissionEnabled = await messaging().hasPermission();
+        } catch (error) {
+          console.error('[Settings] Failed to check messaging permission:', error);
+          // Continue with default permission state
+        }
+
+        const deviceId = await DeviceInfoSafe.getUniqueId();
+        const devicePlatform = DeviceInfoSafe.getSystemName();
+        const manufacturer = await DeviceInfoSafe.getManufacturer();
+        const model = await DeviceInfoSafe.getModel();
+        const apiLevel = await DeviceInfoSafe.getApiLevel();
         const deviceName = `${manufacturer} ${model}`;
 
         const isAndroidAPILevelGreater32 = apiLevel > 32 && Platform.OS === 'android';
-        const brandName = await getBrand();
-        const buildNumber = await getBuildNumber();
+        const brandName = await DeviceInfoSafe.getBrand();
+        const buildNumber = await DeviceInfoSafe.getBuildNumber();
 
         if (!permissionEnabled || permissionEnabled === -1) {
+          try {
           if (isAndroidAPILevelGreater32) {
             await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
           }
           await messaging().requestPermission();
+          } catch (error) {
+            console.error('[Settings] Failed to request messaging permission:', error);
+            // Continue without permission - user can grant it later
+          }
         }
 
         const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
         // https://github.com/invertase/react-native-firebase/issues/6893#issuecomment-1427998691
         // await messaging().registerDeviceForRemoteMessages();
         await sleep(1000);
-        const fcmToken = await messaging().getToken();
+        
+        // Safely get FCM token
+        let fcmToken = '';
+        try {
+          fcmToken = await messaging().getToken();
+        } catch (error) {
+          console.error('[Settings] Failed to get FCM token:', error);
+          // Return error if token is critical, otherwise continue with empty token
+          throw new Error('Failed to get FCM token. Please check your Firebase configuration.');
+        }
 
         const pushData: PushPayload = {
           subscription_type: 'fcm',
@@ -129,7 +142,6 @@ export const settingsActions = {
         await SettingsService.saveDeviceDetails(pushData);
         return { fcmToken };
       } catch (error) {
-        Sentry.captureException(error);
         return rejectWithValue(
           error instanceof Error ? error.message : 'Error saving device details',
         );

@@ -29,6 +29,8 @@ import { selectSortOrder } from '@/store/notification/notificationFilterSlice';
 import { EmptyStateIcon } from '@/svg-icons';
 import { InboxSortTypes } from '@/store/notification/notificationTypes';
 
+// Create AnimatedFlashlist at module level to ensure it's ready before first render
+// This avoids "Element type is invalid" errors by ensuring React recognizes the component type
 const AnimatedFlashlist = Animated.createAnimatedComponent(FlashList<Notification>);
 
 const InboxList = () => {

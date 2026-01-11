@@ -3,7 +3,6 @@ import { mockMacrosResponse } from './macroMockData';
 import { MacroService } from '../macroService';
 import { transformMacro } from '@/utils/camelCaseKeys';
 
-jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 

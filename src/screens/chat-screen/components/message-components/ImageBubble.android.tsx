@@ -4,6 +4,8 @@ import { LightBox, LightBoxProps } from '@alantoa/lightbox';
 import { Image } from 'expo-image';
 import { tailwind } from '@/theme';
 
+// Create AnimatedExpoImage at module level - this is safe because createAnimatedComponent
+// only creates a wrapper component and doesn't call native code until render
 const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
 
 type ImageCellProps = {

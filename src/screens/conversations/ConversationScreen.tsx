@@ -67,6 +67,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // The screen list thats need to be checked for refreshing the conversations list
 const REFRESH_SCREEN_LIST = [SCREENS.CONVERSATION, SCREENS.INBOX, SCREENS.SETTINGS];
 
+// Create AnimatedFlashList at module level to ensure it's ready before first render
+// This avoids "Element type is invalid" errors by ensuring React recognizes the component type
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 type FlashListRenderItemType = {

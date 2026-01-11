@@ -4,7 +4,6 @@ import { AuthState } from '@/store/auth/authSlice';
 import { authActions } from '@/store/auth/authActions';
 import { AvailabilityStatus, UserRole } from '@/types';
 
-jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 

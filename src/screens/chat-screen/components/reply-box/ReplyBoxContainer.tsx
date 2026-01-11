@@ -77,6 +77,8 @@ const SHEET_APPEAR_SPRING_CONFIG = {
 //   directUploadsEnabled: true,
 // };
 
+// Create AnimatedKeyboardStickyView at module level - this is safe because createAnimatedComponent
+// only creates a wrapper component and doesn't call native code until render
 const AnimatedKeyboardStickyView = Animated.createAnimatedComponent(KeyboardStickyView);
 const BottomSheetContent = () => {
   const hapticSelection = useHaptic();

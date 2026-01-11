@@ -9,6 +9,7 @@ import Animated, {
 import { BlurView, BlurViewProps } from '@react-native-community/blur';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { RouteProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { selectCurrentState } from '@/store/conversation/conversationHeaderSlice';
 
 import {
@@ -25,6 +26,8 @@ import { useHaptic, useScaleAnimation, useTabBarHeight } from '@/utils';
 import { TabParamList } from './AppTabs';
 import { useAppSelector } from '@/hooks';
 
+// Create AnimatedBlurView at module level - this is safe because createAnimatedComponent
+// only creates a wrapper component and doesn't call native code until render
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 const tabExitSpringConfig = { damping: 20, stiffness: 360, mass: 1 };
@@ -71,13 +74,14 @@ const TabBarBackground = (props: TabBarBackgroundProps) => {
     };
   });
 
-  return Platform.OS === 'ios' ? (
-    <AnimatedBlurView {...{ blurAmount, blurType }} style={[style, animatedTabBarStyle]}>
-      {children}
-    </AnimatedBlurView>
-  ) : (
-    <Animated.View style={[style, animatedTabBarStyle]}>{children}</Animated.View>
-  );
+  if (Platform.OS === 'ios') {
+    return (
+      <AnimatedBlurView {...{ blurAmount, blurType }} style={[style, animatedTabBarStyle]}>
+        {children}
+      </AnimatedBlurView>
+    );
+  }
+  return <Animated.View style={[style, animatedTabBarStyle]}>{children}</Animated.View>;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,6 +119,10 @@ const TabItem = (props: any) => {
 export const BottomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => {
   const hapticSelection = useHaptic();
   const tabBarHeight = useTabBarHeight();
+  
+  // Get safe area insets - SafeAreaProvider should be available from AppNavigator
+  // If not available, the hook will throw, but that's expected to be caught by ErrorBoundary
+  const insets = useSafeAreaInsets();
 
   // Memoize press handlers using useCallback
   const createPressHandler = React.useCallback(
@@ -160,10 +168,13 @@ export const BottomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
           ),
         ],
         android: [
-          tailwind.style(
-            'flex flex-row absolute w-full bottom-0 pl-[72px] pr-[71px] py-[11px] bg-white',
-            `h-[${tabBarHeight}px]`,
-          ),
+          {
+            ...tailwind.style(
+              'flex flex-row absolute w-full pl-[72px] pr-[71px] py-[11px] bg-white',
+              `h-[${tabBarHeight}px]`,
+            ),
+            bottom: insets.bottom || 0,
+          },
         ],
       })}>
       <Animated.View style={tailwind.style('absolute inset-0 h-[1px] bg-blackA-A3')} />

@@ -1,6 +1,15 @@
 import { ActionCable, Cable } from '@kesha-antonov/react-native-action-cable';
 
-const cable = new Cable({});
+// Lazy-load cable instance to avoid "runtime not ready" errors
+// Only create it when actually needed (after runtime is ready)
+let cableInstance: Cable | null = null;
+function getCable(): Cable {
+  if (!cableInstance) {
+    cableInstance = new Cable({});
+  }
+  return cableInstance;
+}
+
 const channelName = 'RoomChannel';
 const PRESENCE_INTERVAL = 20000;
 
@@ -16,7 +25,7 @@ class BaseActionCableConnector {
   constructor(pubSubToken: string, webSocketUrl: string, accountId: number, userId: number) {
     const connectActionCable = ActionCable.createConsumer(webSocketUrl);
 
-    const channel = cable.setChannel(
+    const channel = getCable().setChannel(
       channelName,
       connectActionCable.subscriptions.create(
         {
@@ -41,7 +50,7 @@ class BaseActionCableConnector {
     this.accountId = accountId;
 
     setInterval(() => {
-      cable.channel(channelName).perform('update_presence');
+      getCable().channel(channelName).perform('update_presence');
     }, PRESENCE_INTERVAL);
   }
 

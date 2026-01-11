@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react-native';
 import { User } from '@/types/User';
 import { Account } from '@/types/Account';
 
@@ -15,13 +14,7 @@ export const getUserPermissions = (user: User, accountId: number | null): string
     const currentAccount = getCurrentAccount(user, accountId) || {};
     return (currentAccount as Account).permissions || [];
   } catch (error) {
-    Sentry.captureException(error, {
-      extra: {
-        user,
-        accountId,
-        functionName: 'getUserPermissions',
-      },
-    });
+    console.error('[PermissionUtils] Error in getUserPermissions:', error);
     return [];
   }
 };

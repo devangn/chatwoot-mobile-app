@@ -6,7 +6,6 @@ import AudioRecorderPlayer, {
 } from 'react-native-audio-recorder-player';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { isUndefined } from 'lodash';
-import * as Sentry from '@sentry/react-native';
 import RNFetchBlob from 'rn-fetch-blob';
 
 import { TEXT_INPUT_CONTAINER_HEIGHT } from '@/constants';
@@ -25,7 +24,8 @@ import { convertAacToWav } from '@/utils/audioConverter';
 
 const RecorderSegmentWidth = Dimensions.get('screen').width - 8 - 80 - 12;
 
-const ARPlayer = new AudioRecorderPlayer();
+// Create AudioRecorderPlayer instance at module level (old architecture - no retry needed)
+const arPlayer = new AudioRecorderPlayer();
 
 /**
  * ! Handling Audio Server Side
@@ -78,67 +78,88 @@ export const AudioRecorder = ({
   const [recorderData, setRecorderData] = useState<RecordBackType | undefined>(undefined);
 
   useEffect(() => {
-    const requestAndroidPermission = async () => {
-      try {
-        const grants = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-        );
+    // Component mount - no need to reset shared state here
+    // The shared manager handles state across all components
 
-        if (grants === PermissionsAndroid.RESULTS.GRANTED) {
-          addRecorderListener();
-        } else {
-          return;
+    // Request permissions and start recording when component mounts
+    const startRecording = async () => {
+      try {
+        // Request permissions first (Android only)
+        if (Platform.OS === 'android') {
+          try {
+            const grants = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+            );
+            if (grants !== PermissionsAndroid.RESULTS.GRANTED) {
+              console.warn('[AudioRecorder] Audio permission denied');
+              setIsVoiceRecorderOpen(false);
+              return;
+            }
+          } catch (err) {
+            console.warn('[AudioRecorder] Permission request error:', err);
+            setIsVoiceRecorderOpen(false);
+            return;
+          }
         }
-      } catch (err) {
-        console.warn(err);
-        return;
+
+        // Add listener for recording updates
+        arPlayer.addRecordBackListener((recordingMeta: RecordBackType) => {
+          setRecorderData(recordingMeta);
+        });
+
+        // Prepare file path
+        const dirs = RNFetchBlob.fs.dirs;
+        const path = Platform.select({
+          ios: `audio-${localRecordedAudioCacheFilePaths.length}.m4a`,
+          android: `${dirs.CacheDir}/audio-${localRecordedAudioCacheFilePaths.length}.aac`,
+        });
+
+        // Start recording
+        await arPlayer.startRecorder(path, {
+          AVFormatIDKeyIOS: AVEncodingOption.aac,
+          AVNumberOfChannelsKeyIOS: 2,
+          AVSampleRateKeyIOS: 44100,
+          AudioSourceAndroid: 1, // MIC
+          OutputFormatAndroid: 6, // AAC_ADTS
+          AudioEncoderAndroid: 3, // AAC
+          AudioSamplingRateAndroid: 16000,
+          AudioEncodingBitRateAndroid: 128000,
+          AudioChannelsAndroid: 2,
+        });
+
+        setIsAudioRecording(true);
+        console.log('[AudioRecorder] Recording started successfully');
+      } catch (error) {
+        console.error('[AudioRecorder] Error starting recording:', error);
+        Alert.alert(
+          'Error',
+          error instanceof Error ? error.message : 'Failed to start recording. Please try again.',
+        );
+        setIsVoiceRecorderOpen(false);
       }
     };
-    const addRecorderListener = () => {
-      ARPlayer.addRecordBackListener((recordingMeta: RecordBackType) => {
-        setRecorderData(recordingMeta);
-      });
-      const dirs = RNFetchBlob.fs.dirs;
-      const path = Platform.select({
-        ios: `audio-${localRecordedAudioCacheFilePaths.length}.m4a`,
-        android: `${dirs.CacheDir}/audio-${localRecordedAudioCacheFilePaths.length}.aac`,
-      });
 
-      ARPlayer.startRecorder(path, {
-        AVFormatIDKeyIOS: AVEncodingOption.aac,
-        AVNumberOfChannelsKeyIOS: 2,
-        AVSampleRateKeyIOS: 44100,
-        AudioSourceAndroid: 1, // MIC
-        OutputFormatAndroid: 6, // AAC_ADTS
-        AudioEncoderAndroid: 3, // AAC
-        AudioSamplingRateAndroid: 16000,
-        AudioEncodingBitRateAndroid: 128000,
-        AudioChannelsAndroid: 2,
-      })
-        .then((value: string) => {
-          if (value) {
-            setIsAudioRecording(true);
-          }
-        })
-        .catch(error => {
-          Alert.alert(
-            'Error preparing audio file',
-            error instanceof Error ? error.message : String(error),
-          );
-          deleteRecorder();
-        });
+    startRecording();
+
+    // Cleanup on unmount - no need to reset shared state
+    // The shared manager maintains the player instance for reuse
+    return () => {
+      // Component-specific cleanup if needed
     };
-    if (Platform.OS === 'android') {
-      requestAndroidPermission();
-    } else {
-      addRecorderListener();
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const deleteRecorder = async () => {
-    await ARPlayer.stopRecorder();
-    setIsVoiceRecorderOpen(false);
+    try {
+      await arPlayer.stopRecorder();
+    } catch (error) {
+      console.error('[AudioRecorder] Error stopping recorder:', error);
+    } finally {
+      // Reset state
+      setIsAudioRecording(false);
+      setRecorderData(undefined);
+      setIsVoiceRecorderOpen(false);
+    }
   };
 
   const createAudioFile = async (value: string) => {
@@ -180,41 +201,60 @@ export const AudioRecorder = ({
     return audioFile;
   };
 
-  const sendRecordedMessage = () => {
+  const sendRecordedMessage = async () => {
     if (isSending) return;
     setIsSending(true);
-    ARPlayer.stopRecorder()
-      .then(async value => {
-        try {
-          const audioFile = await createAudioFile(value);
-          dispatch(addNewCachePath(audioFile.originalPath));
-          setIsVoiceRecorderOpen(false);
-          onRecordingComplete(audioFile as unknown as File);
-        } catch (error) {
-          Sentry.captureException(error);
-          Alert.alert(
-            'Error preparing audio file',
-            error instanceof Error ? error.message : String(error),
-          );
-        }
-      })
-      .catch(e => {
-        console.error('Recording error:', e);
-        Alert.alert('Recording Error', e.toString());
-      })
-      .finally(() => {
-        setIsSending(false);
-      });
+    try {
+      // Stop recording
+      const value = await arPlayer.stopRecorder();
+      
+      // Reset recording state
+      setIsAudioRecording(false);
+      setRecorderData(undefined);
+
+      // Create audio file
+      try {
+        const audioFile = await createAudioFile(value);
+        dispatch(addNewCachePath(audioFile.originalPath));
+        setIsVoiceRecorderOpen(false);
+        onRecordingComplete(audioFile as unknown as File);
+      } catch (error) {
+        Alert.alert(
+          'Error preparing audio file',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    } catch (error) {
+      console.error('[AudioRecorder] Error in sendRecordedMessage:', error);
+      Alert.alert(
+        'Error stopping recorder',
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const toggleRecorder = async () => {
-    if (isAudioRecording) {
-      await ARPlayer.pauseRecorder();
-    } else {
-      await ARPlayer.resumeRecorder();
+    try {
+      const player = getARPlayer();
+      if (!player) {
+        console.error('[AudioRecorder] Player not initialized');
+        return;
+      }
+      if (isAudioRecording) {
+        await player.pauseRecorder();
+      } else {
+        await player.resumeRecorder();
+      }
+      setIsAudioRecording(!isAudioRecording);
+    } catch (error) {
+      console.error('[AudioRecorder] Error toggling recorder:', error);
+      Alert.alert(
+        'Error toggling recorder',
+        error instanceof Error ? error.message : String(error),
+      );
     }
-
-    setIsAudioRecording(!isAudioRecording);
   };
 
   return (

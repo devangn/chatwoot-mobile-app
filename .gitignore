@@ -37,7 +37,8 @@ yarn-error.*
 ios/
 android/
 
-google-services.json
-GoogleService-Info.plist
+#google-services.json
+# Allow placeholder GoogleService-Info.plist (actual config files should still be ignored)
+# GoogleService-Info.plist
 .env
 .env.local

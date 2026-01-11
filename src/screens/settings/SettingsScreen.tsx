@@ -11,7 +11,7 @@ import {
   BottomSheetScrollView,
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
-import DeviceInfo from 'react-native-device-info';
+import { DeviceInfoSafe } from '@/utils/deviceInfoUtils';
 import * as WebBrowser from 'expo-web-browser';
 import ChatWootWidget from '@chatwoot/react-native-widget';
 import { useSelector } from 'react-redux';
@@ -114,14 +114,14 @@ const SettingsScreen = () => {
     originatedFrom: 'mobile-app',
     appName,
     appVersion: appVersionDetails,
-    deviceId: DeviceInfo.getDeviceId(),
+    deviceId: DeviceInfoSafe.getDeviceId(),
     packageName: appName,
     operatingSystem: Platform.OS, // android/ios
   };
 
   const isChatwootCloud = useAppSelector(selectIsChatwootCloud);
 
-  const appInstance = appName; // Removed cloud/self-hosted distinction
+  const appInstance = 'Let Them Connect'; // Whitelabeled app name
 
   const accounts = useSelector(selectAccounts) || [];
 
@@ -210,14 +210,6 @@ const SettingsScreen = () => {
   const preferencesList: GenericListType[] = [
     {
       hasChevron: true,
-      title: i18n.t('SETTINGS.CHANGE_AVAILABILITY'),
-      icon: <SwitchIcon />,
-      subtitle: '',
-      subtitleType: 'light',
-      onPressListItem: () => openSheet(),
-    },
-    {
-      hasChevron: true,
       title: i18n.t('SETTINGS.NOTIFICATIONS'),
       icon: <NotificationIcon />,
       subtitle: '',
@@ -226,53 +218,17 @@ const SettingsScreen = () => {
       onPressListItem: () => notificationPreferencesSheetRef.current?.present(),
       // onPressListItem: openSystemSettings,
     },
-    {
-      hasChevron: true,
-      title: i18n.t('SETTINGS.CHANGE_LANGUAGE'),
-      icon: <TranslateIcon />,
-      subtitle: LANGUAGES[activeLocale as keyof typeof LANGUAGES],
-      subtitleType: 'light',
-      onPressListItem: () => languagesModalSheetRef.current?.present(),
-    },
-    {
-      hasChevron: enableAccountSwitch,
-      title: i18n.t('SETTINGS.SWITCH_ACCOUNT'),
-      icon: <SwitchIcon />,
-      subtitle: activeAccountName,
-      subtitleType: 'light',
-      onPressListItem: () => {
-        if (enableAccountSwitch) {
-          switchAccountSheetRef.current?.present();
-        }
-      },
-    },
   ];
 
   const supportList: GenericListType[] = [
     {
       hasChevron: true,
-      title: 'Watch Tutorials',
-      icon: <SwitchIcon />,
-      subtitle: '',
-      subtitleType: 'light',
-      onPressListItem: () => {
-        const youtubeUrl = process.env.EXPO_PUBLIC_YOUTUBE_CHANNEL_URL;
-        if (youtubeUrl) {
-          WebBrowser.openBrowserAsync(youtubeUrl);
-        }
-      },
-    },
-    {
-      hasChevron: true,
-      title: 'Get Support',
+      title: 'Chat with us',
       icon: <ChatwootIcon />,
       subtitle: '',
       subtitleType: 'light',
       onPressListItem: () => {
-        const supportUrl = process.env.EXPO_PUBLIC_SUPPORT_URL;
-        if (supportUrl) {
-          WebBrowser.openBrowserAsync(supportUrl);
-        }
+        WebBrowser.openBrowserAsync('https://letthemconnect.com');
       },
     },
   ];

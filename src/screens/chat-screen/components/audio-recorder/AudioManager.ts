@@ -5,6 +5,9 @@
 
 import AudioRecorderPlayer, { PlayBackType } from 'react-native-audio-recorder-player';
 
+// Create AudioRecorderPlayer instance at module level (old architecture - no retry needed)
+const audioRecorderPlayer = new AudioRecorderPlayer();
+
 export type Callback = (args: { status: AudioStatus; data?: PlayBackType }) => void;
 
 type Path = string | undefined;
@@ -17,7 +20,6 @@ export enum AudioStatus {
   STOPPED = 'STOPPED',
 }
 
-let audioRecorderPlayer: AudioRecorderPlayer | undefined;
 let currentPath: Path;
 let currentCallback: Callback = () => {};
 let currentPosition = 0;
@@ -27,15 +29,9 @@ export const startPlayer = async (path: string, callback: Callback) => {
     currentPath = path;
     currentCallback = callback;
   } else if (currentPath !== path) {
-    if (audioRecorderPlayer !== undefined) {
-      await stopPlayer();
-    }
+    await stopPlayer();
     currentPath = path;
     currentCallback = callback;
-  }
-
-  if (audioRecorderPlayer === undefined) {
-    audioRecorderPlayer = new AudioRecorderPlayer();
   }
 
   const shouldBeResumed = currentPath === path && currentPosition > 0;
@@ -71,24 +67,23 @@ export const startPlayer = async (path: string, callback: Callback) => {
 };
 
 export const pausePlayer = async () => {
-  await audioRecorderPlayer?.pausePlayer();
+  await audioRecorderPlayer.pausePlayer();
   currentCallback({ status: AudioStatus.PAUSED });
 };
 
 export const resumePlayer = async () => {
-  await audioRecorderPlayer?.resumePlayer();
+  await audioRecorderPlayer.resumePlayer();
   currentCallback({ status: AudioStatus.RESUMED });
 };
 
 export const seekTo = async (position: number) => {
-  await audioRecorderPlayer?.seekToPlayer(position);
+  await audioRecorderPlayer.seekToPlayer(position);
   currentCallback({ status: AudioStatus.PLAYING });
 };
 
 export const stopPlayer = async () => {
-  await audioRecorderPlayer?.stopPlayer();
-  audioRecorderPlayer?.removePlayBackListener();
+  await audioRecorderPlayer.stopPlayer();
+  audioRecorderPlayer.removePlayBackListener();
   currentPosition = 0;
   currentCallback({ status: AudioStatus.STOPPED });
-  audioRecorderPlayer = undefined;
 };
